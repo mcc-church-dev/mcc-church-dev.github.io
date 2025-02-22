@@ -1,0 +1,15 @@
+<html>
+<head></head>
+<script>
+  const urlParams = new URLSearchParams(window.location.search);
+  let change="";
+  const par = urlParams.get('change');
+  if(urlParams.has('change')){
+       change = par;
+  }
+  let url="http://127.0.0.1:8080/tree.html?change="+change;
+  let popup=window.open(url,"popup","width=657,height=530,location=no,menubar=no,status=no,toolbar=no,titlebar=no,left=700");
+  if(popup)
+    window.close();
+</script>
+</html>
