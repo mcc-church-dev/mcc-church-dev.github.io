@@ -1,6 +1,8 @@
 <html>
 <head></head>
 <script>
-  self.location="http://127.0.0.1:8080/tree.html";
+  let popup = window.open('http://127.0.0.1:8080/tree.html', 'popup', 'width=600,height=500');
+  if(popup)
+    window.close();
 </script>
 </html>
