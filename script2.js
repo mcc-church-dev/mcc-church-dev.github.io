@@ -50,7 +50,7 @@ function checkcreds(){
     if (un==undefined || pw==undefined || un=="" || pw=="") {
         var creds = document.getElementById('creds');
         creds.setAttribute('open', 'true');
-        alert('You must enter Your Fusion Cloud credentials before You begin');
+       // alert('You must enter Your Fusion Cloud credentials before You begin');
         return false;
     }
     encauth();
