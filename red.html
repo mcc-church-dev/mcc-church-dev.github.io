@@ -1,7 +1,10 @@
 <html>
 <head></head>
 <script>
-  let popup = window.open('http://127.0.0.1:8080/tree.html', 'popup', 'width=600,height=500');
+  let change="ARC-COM-00035";
+  let part="9000024";
+  let url="http://127.0.0.1:8080/tree.html?change="+change+"&part="+part;
+  let popup=window.open(url,"popup","width=657,height=530,location=no,menubar=no,status=no,toolbar=no,titlebar=no,left=700");
   if(popup)
     window.close();
 </script>
