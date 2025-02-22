@@ -1,0 +1,55 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    </title>
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
+    <meta name="viewport" content="width=device-width, initial-scale=1 maximum-scale=1 minimum-scale=1" />
+    <head>	
+        <link rel="stylesheet" href="styles.css" />
+        <link rel="stylesheet" href="https://www.jqwidgets.com/jquery-widgets-demo/jqwidgets/styles/jqx.base.css" type="text/css" />
+        <link rel="stylesheet" href="https://www.jqwidgets.com/jquery-widgets-demo/jqwidgets/styles/jqx.material.css" type="text/css" />
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
+        <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
+        <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/jqwidgets/20.0.0/jqwidgets/jqx-all.js"></script>
+        <script src="script2.js"></script>
+</head>
+<body class='default' style="position:absolute;">
+    <div style="width:100%;height:100%;position:relative;">
+    <div id="ldr" style="z-index:9999;"></div>
+    <div id='jqxWidget'>
+        <div id='jqxExpander' ondblclick="togexp();" style="margin-left:10px;margin-top:20px;padding:8px;">
+            <div style="padding-top:5px;">
+                <span style="margin-right:10px;font-size:14px;color:black;font-weight:bold;" onclick="dofire();">Unreleased Changes with Label Attachments</span>
+                <table width="100%" style="margin-top:8px;"><tr><td colspan="2"><select id="seltype"><option>Change</option><option>Part</option></select>&nbsp;
+                <select id="selop"><option>equals</option><option>startswith</option><option>endswith</option><option>contains</option></select>&nbsp;
+                <input id="srch" placeholder="Change Number or Part Number" type="search" size=30>&nbsp;<button onclick="search();">
+                <img src="/icons/magnifying-glass-solid.svg" width="12px" height="12px"></button>&nbsp;&nbsp;Include Cloud<input type="checkbox" checked id="cloudcb" style="vertical-align:top;"></td>
+                </tr><tr><td>
+                <!-- ########################################################### -->
+                <details style="padding:5px;"><summary style="font-size:12px;">Defaults</summary>
+                <table><tr><td>Username</td><td><input id="un" type="text" size="15"></td></tr>
+                <tr><td>Password</td><td><input id="pw" type="password" size="15"></td></tr>
+               <tr><td colspan="2" style="height:20px;padding-top:8px;">Default Change Type</td></tr>
+               <tr><td colspan="2"><select id="defaultchangetype" onchange="changedefaultchangetype(event);">
+                     <option value="ARCO_Commercial_Release_Cork">ARCO Commercial Cork</option>
+                     <option value="ARCO_Commercial_Release_Foster_City">ARCO Commercial FC</option>
+                     <option value="*">Include All Change Types</option>
+                      </select>&nbsp;&nbsp;
+                <button onclick="store_config();" style="font-size:10px;">Save</button></td></tr></table>
+                </details>
+                </td>
+                <td style="float:right"><button onclick="closeavwin();" style="font-size=10px;">AV Close</button>&nbsp;
+                <button onclick="avexit();" style="font-size=10px;">AV Exit</button>&nbsp;
+                <button onclick="getmarkups();"><img src="/icons/cloud-arrow-up-solid.svg" width="18px" height="18px"></button></td></tr></table></td>
+                <!-- ######################### -->
+                </td></tr></table>
+            </div>
+            <div style="overflow: hidden;">
+                <div style="border: none;" id='jqxTree'>
+                </div>
+            </div>
+        </div>
+    </div>
+ </div>
+</body>
