@@ -1,0 +1,324 @@
+<html>
+<head>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet">
+<script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
+<style>
+
+.butt{
+   font-family: "Roboto", sans-serif;font-size:10px;
+   padding:1px;
+   margin-left:14px;
+}
+
+.butt2{
+   font-family: "Roboto", sans-serif;font-size:10px;
+   padding:1px;
+   margin-left:9px;
+}
+
+#top{
+  padding:8px;
+}
+
+tr { cursor: default; padding: 10px;height:30px;text-align:left;vertical-align:middle;}
+
+.highlight { background: #e6f2ff; font-style:ROBOTO;font-size:12px;}
+
+th {background-color:white;color:black;padding: 4px;font-family: "Roboto", sans-serif;font-size:12px;}
+
+.tab2{
+  width: 530px;
+  border:solid 1px lightgray;
+  font-style:bold;
+}
+
+summary{padding:4px;color:black;font-family: "Roboto", sans-serif;font-size:14px;}
+
+details{
+  padding: 8px;
+  width:530px;
+  border:solid 1px whitesmoke;
+  background-color: whitesmoke;
+  box-shadow: 1px 1px 2px black;
+  margin-bottom:18px;
+}
+
+.tab1{
+  margin-top:8px;
+  background-color:white;
+  padding:4px;
+  width:530px;
+  border:solid 1px lightgray;
+  overflow:auto;
+}
+
+td{font-family: "Roboto", sans-serif;font-size:12px;}
+
+.spacer{margin-right:8px;}
+
+.col1{width:150px;}
+
+.col2{width:200px;}
+
+i{color:black;}
+</style>
+
+<script>
+
+var currdetails=[];
+var un="john.dunbar";
+var pw="z6^n%cE7";
+var auth64 = btoa(un + ":" + pw);
+const urlParams = new URLSearchParams(window.location.search);
+var change = urlParams.get('change');
+var itemsapiurl = "https://fa-etao-dev22-saasfademo1.ds-fa.oraclepdemos.com:443/fscmRestApi/resources/11.13.18.05/itemsV2";
+var changesapiurl = "https://fa-etao-dev22-saasfademo1.ds-fa.oraclepdemos.com:443/fscmRestApi/resources/11.13.18.05/productChangeOrdersV2";
+
+var spacer="&nbsp;&nbsp;&nbsp;-&nbsp;&nbsp;&nbsp;";
+
+window.onload = (event) => {
+
+    if(change==undefined || change.length<0)
+      change="ARCO-COM-00035";
+
+    if(change!=undefined && change.length>0)
+       getAllPendingChangesAndAffectedItems();
+
+/* 
+  var data1=[{partrev:'900004 (B)',partdescr:'Label for Biktarvy 200ml',files:[{filename:'label1.pdf',filedescr:'label instructions',dlurl:'https://file2'},
+  {filename:'markup1',filedescr:'first markup',dlurl:'https://file1'},{filename:'markup2',filedescr:'2nd markup',dlurl:'https://file1'},
+  {filename:'markup3',filedescr:'3rd markup',dlurl:'https://file22'},{filename:'markup5',filedescr:'correction',dlurl:'https://file13'},
+  ]}];
+  var data2=[{partrev:'900024 (C)',partdescr:'Label for Wegovy tablets',files:[{filename:'label2.pdf',filedescr:'label correction',dlurl:'https://file3'}]}];
+
+  makedetails(data1);
+  makedetails(data2);
+*/  
+
+};
+
+function finish(){
+
+  var rows = $('tr').not(':first');
+  rows.on('click', function(e) {
+     var row = $(this);
+     if ((e.ctrlKey || e.metaKey) || e.shiftKey) {
+            /* If pressed highlight the other row that was clicked */
+            row.addClass('highlight');
+     } else {
+            /* Otherwise just highlight one row and clean others */
+            rows.removeClass('highlight');
+            row.addClass('highlight');
+     }
+  });
+
+  //prevent some ugliness
+  $(document).bind('selectstart dragstart', function(e) { 
+        e.preventDefault(); return false; 
+  });
+
+  document.getElementById('d0').setAttribute('open',true);
+}
+
+function makedetails(data){
+  let topdiv=document.getElementById('top');
+  for(let i=0;i<data.length;i++){
+   let pinfo=data[i];
+   let details=document.createElement("details");
+   details.id="d"+i;
+   currdetails.push(details)
+   let summary=document.createElement("summary");
+   if(pinfo.partdescr!=undefined && pinfo.partdescr.length>0) 
+        summary.innerHTML="&nbsp;&nbsp;&nbsp;"+pinfo.partrev+spacer+pinfo.partdescr;
+   else 
+        summary.innerHTML="&nbsp;&nbsp;&nbsp;"+pinfo.partrev
+   let tab=document.createElement('table');
+   tab.classList.add('tab1');
+   for(let j=0;j<pinfo.files.length;j++){
+      let finfo=pinfo.files[j];
+      if(j==0){
+        let tr=tab.insertRow();
+        let td1=document.createElement("th");
+        td1.classList.add('col1');
+        td1.appendChild(document.createTextNode("Title"));
+        tr.appendChild(td1);
+        let td2=document.createElement("th");
+        td2.classList.add('col2');
+        td2.appendChild(document.createTextNode("Description"));
+        tr.appendChild(td2);
+        let td3=document.createElement("th");
+        td3.appendChild(document.createTextNode("Category"));
+        tr.appendChild(td3);
+        tr.insertCell();
+        tr.insertCell();
+      }
+      let tr=tab.insertRow();
+      tr.setAttribute('data-dlurl',finfo.dlurl);
+      let td1=tr.insertCell();
+      td1.classList.add('col1');
+      let ic=document.createElement("i");
+      ic.classList.add('fa-regular');
+      if(finfo.filename.endsWith(".pdf"))
+         ic.classList.add('fa-file-pdf');
+      else
+         ic.classList.add('fa-file');
+      td1.appendChild(ic);
+      let sp=document.createElement("span");
+      sp.classList.add('spacer');
+      td1.appendChild(sp);
+      td1.appendChild(document.createTextNode(finfo.filename));
+      let td2=tr.insertCell();
+      td2.classList.add('col2');
+      td2.appendChild(document.createTextNode(finfo.filedescr));
+      let td3=tr.insertCell();
+      td3.appendChild(document.createTextNode("Drawing"));
+      let td4=tr.insertCell();
+      let butt=document.createElement('button');
+      butt.innerText="Markup";
+      butt.classList.add('butt');
+      td4.appendChild(butt);
+      let butt2=document.createElement('button');
+      butt2.innerHTML='<img src="/icons/cloud-arrow-up-solid.svg" width="18px" height="18px">';
+      butt2.classList.add('butt2');
+      let td5=tr.insertCell();
+      td5.appendChild(butt2);
+   }//for
+   details.appendChild(summary);
+   details.appendChild(tab);
+   topdiv.appendChild(details);
+  }//for
+}
+
+function getdownloadurl(item){
+   
+}
+
+//  var data2=[{partrev:'900024 (C)',partdescr:'Label for Wegovy tablets',files:[{filename:'label2.pdf',filedescr:'label correction',dlurl:'https://file3'}]}];
+
+function partnextphase(items,changenumber,changedescription,itemnumber,itemrev){
+     let pdfs=[];
+     let markups=[];
+     
+     let files1=[];
+
+     for(let i=0;i<items.length;i++){
+         let item=items[i];
+         let downloadurl=item.DownloadInfo;
+         let finfo=[item.FileName,item.Description,downloadurl];  
+         if(finfo[0].endsWith(".pdf"))
+           pdfs.push(finfo);
+         else
+           markups.push(finfo);
+     }
+   
+     for(let i=0;i<pdfs.length;i++){
+         let filename1=pdfs[i][0];
+         let filedescription=pdfs[i][1];
+         let downloadurl=pdfs[i][2];
+         files1.push({filename:filename1,filedescr:filedescription,dlurl:downloadurl});
+     }
+
+     for(let i=0;i<markups.length;i++){
+         let filename1=markups[i][0];
+         let filedescription=markups[i][1];
+         let downloadurl=markups[i][2];
+         files1.push({filename:filename1,filedescr:filedescription,dlurl:downloadurl});
+     }  
+ 
+     let data=[{partrev:itemnumber+" ("+itemrev+")",partdescr:'',files:files1}];
+     makedetails(data);
+     finish();   
+}
+
+
+function processDocs(url,changenumber,changedescription,itemnumber,itemrev){
+
+        fetch(url, { method: "GET", headers: { "Authorization": "Basic " + auth64 } })
+            .then(response => {
+                if (!response.ok)
+                    throw new Error('http error: ' + response.status);
+                return response.json();
+            })
+            .then(data => {
+                let items = data.items;
+                if (items.length > 0)                 
+                   partnextphase(items,changenumber,changedescription,itemnumber,itemrev);// 'asynchronous'
+            })
+            .catch(error => {
+                console.error("error: " + error);
+                alert("error: " + error);
+            });                
+   
+}
+
+function getAOAttachUrl(item){
+  let links = item.links;
+  for (let k = 0; k < links.length; k++) {
+      let link = links[k];
+      if (link.name == 'changeOrderAffectedItemAttachment') {
+         let href = link.href;
+         let url = href + "?fields=FileName,DownloadInfo,Description&onlyData=true";
+         return url;
+      }
+  } 
+  return "";  
+}
+
+
+function changenextphase(items){
+     for(let i=0;i<items.length;i++){
+         let item=items[i];
+         let changenumber=item.ChangeNotice;
+         let changedescription=item.Description;
+         let aos=item.changeOrderAffectedObject;
+         for(i=0;i<aos.length;i++){
+             let item=aos[i];
+             let itemnumber=item.ItemNumber;
+             let itemrev=item.NewItemRevision;
+             let href=getAOAttachUrl(item);
+             if(href.length>0){                               
+               processDocs(href,changenumber,changedescription,itemnumber,itemrev);
+               console.log("spawned off "+item.ItemNumber);
+             }
+         }
+     }       
+}
+
+function getAllPendingChangesAndAffectedItems(){
+    let defchangeselval="ARCO_Commercial_Release_Cork";
+    let url = changesapiurl + "?q=ChangeNotice=" + change + "&expand=changeOrderAffectedObject&links=child&totalResults=true";
+
+    for(let i=0;i<currdetails.length;i++)
+       currdetails[i].remove();
+
+    //$('#ldr').jqxLoader('open');
+
+    fetch(url, { method: "GET", headers: { "Authorization": "Basic " + auth64 } })
+            .then(response => {
+                if (!response.ok)
+                    throw new Error('http error: ' + response.status);
+                return response.json();
+            })
+            .then(data => {
+                let items = data.items;
+                if (items.length > 0) {
+                    changenextphase(items);// 'asynchronous'
+                }else{
+                   //$('#ldr').jqxLoader('close');
+                   alert('no data found');
+                }
+            })
+            .catch(error => {
+                console.error("error: " + error);
+                alert("error: " + error);
+            });
+}
+</script>
+</head>
+<body>
+<div id="top"></div>
+</body>
+</html>
