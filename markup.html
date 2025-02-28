@@ -84,11 +84,11 @@ function init(){
  }
  payload = {}
  payload.origin = window.frames.origin;
- payload.methos = 'requestJwtToken'
+ payload.method = 'requestJwtToken'
  window.parent.postMessage(JSON.stringify(payload), '*');
 }
 function receiveJWTToken(token){
-  jwttoken=token.data.jwtToken;
+  jwttoken=token.data;
   authtxt="Bearer "+jwttoken;
   console.log(authtxt);
 }
