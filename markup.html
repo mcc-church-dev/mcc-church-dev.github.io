@@ -67,6 +67,29 @@ td{font-family: "Roboto", sans-serif;font-size:12px;padding:6px;}
 i{color:lightsteelblue;}
 </style>
 
+<script type="text/javascript">
+var jwttoken="";
+
+function init(){
+ if (typeof window.addEventListener === 'function'){
+   window.addEventListener('message', receiveJWTToken, fasle);
+ }else if (typeof window.attachEvent == 'function'){
+   window.attachEvent('onemessage', receiveJWTToken);
+ }else{
+   throw new Error("Browser doesn't support addEventListener or attachEvent");
+ }
+ payload = {}
+ payload.origin = window.frames.origin;
+ payload.methos = 'requestJwtToken'
+ window.parent.postMessage(JSON.stringify(payload), '*');
+}
+function receiveJWTToken(token){
+  jtwttoken=token;
+  alert(token);
+}
+init();
+</script>
+
 <script>
 
 var change = "";
@@ -219,7 +242,7 @@ function makedetails(data){
       butt.addEventListener('click',markupclick);
       butt.setAttribute('data-markupinfo',finfo.filename+"|"+finfo.dlurl);
       let butt2=document.createElement('button');
-      butt2.innerHTML='<img src="'+cloudurl+'" width="18px" height="18px">';
+      butt2.innerHTML='<i class="fa-solid fa-cloud-arrow-up" style="color:black;width:18px;height:15px;"></i>';
       butt2.classList.add('butt2');
       let td6=tr.insertCell();
       td6.appendChild(butt2);
