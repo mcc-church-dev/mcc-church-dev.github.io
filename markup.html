@@ -369,6 +369,8 @@ function getAllPendingChangesAndAffectedItems(){
 
     //$('#ldr').jqxLoader('open');
 
+   console.log("authtxt="+authtxt);
+
     fetch(url, { method: "GET", headers: { "Authorization": authtxt} })
             .then(response => {
                 if (!response.ok)
