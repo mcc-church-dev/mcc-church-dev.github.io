@@ -119,8 +119,9 @@ window.onload = (event) => {
     if(change==undefined || change.length<0)
       change="ARCO-COM-00035";
 
-    if(change!=undefined && change.length>0)
-       getAllPendingChangesAndAffectedItems();
+    if(change!=undefined && change.length>0){
+       setTimeout(() => {getAllPendingChangesAndAffectedItems();}, "3000");      
+    }
 };
 
 function finish(){
