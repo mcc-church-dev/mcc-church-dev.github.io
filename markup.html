@@ -16,7 +16,7 @@
 .butt2{
    font-family: "Roboto", sans-serif;font-size:10px;
    padding:1px;
-   margin-left:9px;
+   /* margin-left:9px; */
 }
 
 #top{
@@ -28,22 +28,22 @@ tr { cursor: default; padding: 10px;height:30px;text-align:left;vertical-align:m
 
 .highlight { background: #e6f2ff; font-style:ROBOTO;font-size:12px;}
 
-th {background-color:white;color:black;padding: 4px;font-family: "Roboto", sans-serif;font-size:12px;}
+th {border:solid 1px whitesmoke;color:black;padding: 4px;font-family: "Roboto", sans-serif;font-size:12px;}
 
 .tab2{
-  width: 530px;
+  width: 600px;
   border:solid 1px lightgray;
   font-style:bold;
 }
 
-summary{padding:4px;color:black;font-family: "Roboto", sans-serif;font-size:14px;}
+summary{padding:4px;color:black;font-family: "Roboto", sans-serif;font-size:14px;background-color:whitesmoke;}
 
 details{
   padding: 8px;
-  width:530px;
+  width:600px;
   border:solid 1px whitesmoke;
-  background-color: whitesmoke;
-  box-shadow: 1px 1px 2px black;
+  background-color: white;
+ box-shadow: 1px 1px 2px whitesmoke; 
   margin-bottom:18px;
 }
 
@@ -51,12 +51,12 @@ details{
   margin-top:8px;
   background-color:white;
   padding:4px;
-  width:530px;
-  border:solid 1px lightgray;
+  width:600px;
+  /* border:solid 1px lightgray; */
   overflow:auto;
 }
 
-td{font-family: "Roboto", sans-serif;font-size:12px;}
+td{font-family: "Roboto", sans-serif;font-size:12px;padding:6px;}
 
 .spacer{margin-right:8px;}
 
@@ -64,7 +64,7 @@ td{font-family: "Roboto", sans-serif;font-size:12px;}
 
 .col2{width:200px;}
 
-i{color:black;}
+i{color:lightsteelblue;}
 </style>
 
 <script>
@@ -100,22 +100,28 @@ window.onload = (event) => {
 
 function finish(){
   var rows = $('tr').not(':first');
+
+  rows.on('mouseover',function(e){
+      let row = $(this);
+      row.addClass('highlight');
+  });
+
+  rows.on('mouseout',function(e){
+      let row = $(this);
+      row.removeClass('highlight');
+  });
+
+  /*
   rows.on('click', function(e) {
-     var row = $(this);
+     let row = $(this);
      if ((e.ctrlKey || e.metaKey) || e.shiftKey) {
-            /* If pressed highlight the other row that was clicked */
             row.addClass('highlight');
      } else {
-            /* Otherwise just highlight one row and clean others */
             rows.removeClass('highlight');
             row.addClass('highlight');
      }
-     let markupinfo=row[0].getAttribute('data-markupinfo');
-     let mis=markupinfo.split("|");
-     let filename=mis[0];
-     let dlurl=mis[1];
-     markup(filename,dlurl);
   });
+  */
 
   //prevent some ugliness
   $(document).bind('selectstart dragstart', function(e) { 
@@ -125,6 +131,17 @@ function finish(){
   let dets=document.getElementsByClassName('detailsclass');
   for(let i=0;i<dets.length;i++)
       dets[i].setAttribute('open',true);
+}
+
+function markupclick(ev){
+     let markupinfo=ev.target.getAttribute('data-markupinfo');
+     let mis=markupinfo.split("|");
+     let filename=mis[0];
+     let dlurl=mis[1];
+     markup(filename,dlurl);
+     let id=ev.target.id;
+     let stat=document.getElementById('td|'+id);
+     stat.innerText="In-AutoVue";
 }
 
 function makedetails(data){
@@ -157,11 +174,21 @@ function makedetails(data){
         let td3=document.createElement("th");
         td3.appendChild(document.createTextNode("Category"));
         tr.appendChild(td3);
-        tr.insertCell();
-        tr.insertCell();
+        let td4=document.createElement("th");
+        td4.appendChild(document.createTextNode("Status"));
+        tr.appendChild(td4);
+        td4.style="width:100px;"
+        let td5=document.createElement("th");
+        td5.appendChild(document.createTextNode(""));
+        tr.appendChild(td5);
+        let td6=document.createElement("th");
+        td6.appendChild(document.createTextNode(""));
+        tr.appendChild(td6)
+        let td7=document.createElement("th");
+        td7.appendChild(document.createTextNode(""));
+        tr.appendChild(td7)
       }
       let tr=tab.insertRow();
-      tr.setAttribute('data-markupinfo',finfo.filename+"|"+finfo.dlurl);
       let td1=tr.insertCell();
       td1.classList.add('col1');
       let ic=document.createElement("i");
@@ -181,15 +208,26 @@ function makedetails(data){
       let td3=tr.insertCell();
       td3.appendChild(document.createTextNode("Drawing"));
       let td4=tr.insertCell();
+      td4.id="td|"+pinfo.partrev+"|"+finfo.filename;
+      td4.appendChild(document.createTextNode("Unchanged"));
+      let td5=tr.insertCell();
       let butt=document.createElement('button');
       butt.innerText="Markup";
       butt.classList.add('butt');
-      td4.appendChild(butt);
+      td5.appendChild(butt);
+      butt.id=pinfo.partrev+"|"+finfo.filename;
+      butt.addEventListener('click',markupclick);
+      butt.setAttribute('data-markupinfo',finfo.filename+"|"+finfo.dlurl);
       let butt2=document.createElement('button');
       butt2.innerHTML='<img src="'+cloudurl+'" width="18px" height="18px">';
       butt2.classList.add('butt2');
-      let td5=tr.insertCell();
-      td5.appendChild(butt2);
+      let td6=tr.insertCell();
+      td6.appendChild(butt2);
+      let butt3=document.createElement('button');
+      butt3.innerHTML='<i class="fa-solid fa-rotate" style="color:black;"></i>';
+      butt3.classList.add('butt3');
+      let td7=tr.insertCell();
+      td7.appendChild(butt3);
    }//for
    details.appendChild(summary);
    details.appendChild(tab);
