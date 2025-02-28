@@ -102,8 +102,10 @@ function init(){
 function receiveJWTToken(token){
   jwttoken=token.data;
   authtxt="Bearer "+jwttoken;
-  console.log(authtxt);
-  getAllPendingChangesAndAffectedItems();
+  if(authtxt.length<50)
+     getAllPendingChangesAndAffectedItems();
+  else
+     console.log("authtxt too short!");
 }
 
 window.onload = (event) => {
