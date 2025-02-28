@@ -88,8 +88,8 @@ function init(){
  window.parent.postMessage(JSON.stringify(payload), '*');
 }
 function receiveJWTToken(token){
-  jtwttoken=token;
-  authtxt="Bearer "+token;
+  jwttoken=token.data;
+  authtxt="Bearer "+jwttoken;
 }
 init();
 </script>
