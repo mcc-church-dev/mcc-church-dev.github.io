@@ -20,7 +20,8 @@
 }
 
 #top{
-  padding:8px;
+  margin-top:20px;
+  padding:12px;
 }
 
 tr { cursor: default; padding: 10px;height:30px;text-align:left;vertical-align:middle;}
@@ -68,40 +69,36 @@ i{color:black;}
 
 <script>
 
+var change = "";
+var username = "";
+
 var currdetails=[];
 var un="john.dunbar";
 var pw="z6^n%cE7";
 var auth64 = btoa(un + ":" + pw);
 const urlParams = new URLSearchParams(window.location.search);
-var change = urlParams.get('change');
 var itemsapiurl = "https://fa-etao-dev22-saasfademo1.ds-fa.oraclepdemos.com:443/fscmRestApi/resources/11.13.18.05/itemsV2";
 var changesapiurl = "https://fa-etao-dev22-saasfademo1.ds-fa.oraclepdemos.com:443/fscmRestApi/resources/11.13.18.05/productChangeOrdersV2";
+var avurl = "http://localhost:8888";
+var downloadproxyurl="http://localhost:8080/examples/download.jsp";
+var cloudurl="/examples/cloud-arrow-up-solid.svg";
+var avinit=0;
 
 var spacer="&nbsp;&nbsp;&nbsp;-&nbsp;&nbsp;&nbsp;";
 
 window.onload = (event) => {
+
+    change = urlParams.get('change');
+    username = urlParams.get('username');
 
     if(change==undefined || change.length<0)
       change="ARCO-COM-00035";
 
     if(change!=undefined && change.length>0)
        getAllPendingChangesAndAffectedItems();
-
-/* 
-  var data1=[{partrev:'900004 (B)',partdescr:'Label for Biktarvy 200ml',files:[{filename:'label1.pdf',filedescr:'label instructions',dlurl:'https://file2'},
-  {filename:'markup1',filedescr:'first markup',dlurl:'https://file1'},{filename:'markup2',filedescr:'2nd markup',dlurl:'https://file1'},
-  {filename:'markup3',filedescr:'3rd markup',dlurl:'https://file22'},{filename:'markup5',filedescr:'correction',dlurl:'https://file13'},
-  ]}];
-  var data2=[{partrev:'900024 (C)',partdescr:'Label for Wegovy tablets',files:[{filename:'label2.pdf',filedescr:'label correction',dlurl:'https://file3'}]}];
-
-  makedetails(data1);
-  makedetails(data2);
-*/  
-
 };
 
 function finish(){
-
   var rows = $('tr').not(':first');
   rows.on('click', function(e) {
      var row = $(this);
@@ -113,6 +110,11 @@ function finish(){
             rows.removeClass('highlight');
             row.addClass('highlight');
      }
+     let markupinfo=row[0].getAttribute('data-markupinfo');
+     let mis=markupinfo.split("|");
+     let filename=mis[0];
+     let dlurl=mis[1];
+     markup(filename,dlurl);
   });
 
   //prevent some ugliness
@@ -120,7 +122,9 @@ function finish(){
         e.preventDefault(); return false; 
   });
 
-  document.getElementById('d0').setAttribute('open',true);
+  let dets=document.getElementsByClassName('detailsclass');
+  for(let i=0;i<dets.length;i++)
+      dets[i].setAttribute('open',true);
 }
 
 function makedetails(data){
@@ -129,6 +133,7 @@ function makedetails(data){
    let pinfo=data[i];
    let details=document.createElement("details");
    details.id="d"+i;
+   details.classList.add('detailsclass');
    currdetails.push(details)
    let summary=document.createElement("summary");
    if(pinfo.partdescr!=undefined && pinfo.partdescr.length>0) 
@@ -156,7 +161,7 @@ function makedetails(data){
         tr.insertCell();
       }
       let tr=tab.insertRow();
-      tr.setAttribute('data-dlurl',finfo.dlurl);
+      tr.setAttribute('data-markupinfo',finfo.filename+"|"+finfo.dlurl);
       let td1=tr.insertCell();
       td1.classList.add('col1');
       let ic=document.createElement("i");
@@ -181,7 +186,7 @@ function makedetails(data){
       butt.classList.add('butt');
       td4.appendChild(butt);
       let butt2=document.createElement('button');
-      butt2.innerHTML='<img src="/icons/cloud-arrow-up-solid.svg" width="18px" height="18px">';
+      butt2.innerHTML='<img src="'+cloudurl+'" width="18px" height="18px">';
       butt2.classList.add('butt2');
       let td5=tr.insertCell();
       td5.appendChild(butt2);
@@ -192,22 +197,18 @@ function makedetails(data){
   }//for
 }
 
-function getdownloadurl(item){
-   
-}
-
 //  var data2=[{partrev:'900024 (C)',partdescr:'Label for Wegovy tablets',files:[{filename:'label2.pdf',filedescr:'label correction',dlurl:'https://file3'}]}];
 
-function partnextphase(items,changenumber,changedescription,itemnumber,itemrev){
+function processattachments(itemnumber,itemrev,itemdescription,revatts){
      let pdfs=[];
      let markups=[];
      
      let files1=[];
 
-     for(let i=0;i<items.length;i++){
-         let item=items[i];
-         let downloadurl=item.DownloadInfo;
-         let finfo=[item.FileName,item.Description,downloadurl];  
+     for(let i=0;i<revatts.length;i++){
+       let revatt=revatts[i];
+       //UserName (aka category),CreatedByUserName,LastUpdateDate,LastUpdatedBy
+       let finfo=[revatt.FileName,revatt.Description,revatt.links[0].href];  
          if(finfo[0].endsWith(".pdf"))
            pdfs.push(finfo);
          else
@@ -228,13 +229,13 @@ function partnextphase(items,changenumber,changedescription,itemnumber,itemrev){
          files1.push({filename:filename1,filedescr:filedescription,dlurl:downloadurl});
      }  
  
-     let data=[{partrev:itemnumber+" ("+itemrev+")",partdescr:'',files:files1}];
+     let data=[{partrev:itemnumber+" ("+itemrev+")",partdescr:itemdescription,files:files1}];
      makedetails(data);
      finish();   
 }
 
-
-function processDocs(url,changenumber,changedescription,itemnumber,itemrev){
+function itemnextphase(itemnumber,itemrev,itemdescription,href){
+        let url=href+"/child/ItemRevision?q=RevisionCode="+itemrev+"&fields=RevisionCode,RevisionAttachment&expand=RevisionAttachment&links=enclosure";
 
         fetch(url, { method: "GET", headers: { "Authorization": "Basic " + auth64 } })
             .then(response => {
@@ -244,8 +245,34 @@ function processDocs(url,changenumber,changedescription,itemnumber,itemrev){
             })
             .then(data => {
                 let items = data.items;
-                if (items.length > 0)                 
-                   partnextphase(items,changenumber,changedescription,itemnumber,itemrev);// 'asynchronous'
+                let revatts=items[0].RevisionAttachment;
+                if(revatts.length>0){              
+                  processattachments(itemnumber,itemrev,itemdescription,revatts);// 'asynchronous'
+                  console.log("getting attachment info for: "+itemnumber+" ("+itemrev+") "+itemdescription);
+                }else
+                  console.log("no attachments on: "+itemnumber+" ("+itemrev+") "+itemdescription);
+            })
+            .catch(error => {
+                console.error("error: " + error);
+                alert("error: " + error);
+            });
+}
+
+function processaffecteditems(itemnumber,itemrev){
+        let url=itemsapiurl+"?q=ItemNumber="+itemnumber+"&fields=ItemDescription&links=self";
+
+        fetch(url, { method: "GET", headers: { "Authorization": "Basic " + auth64 } })
+            .then(response => {
+                if (!response.ok)
+                    throw new Error('http error: ' + response.status);
+                return response.json();
+            })
+            .then(data => {
+                let items = data.items;
+                let itemdescription=items[0].ItemDescription;
+                let href=items[0].links[0].href;                
+                itemnextphase(itemnumber,itemrev,itemdescription,href);// 'asynchronous'
+                console.log("next phase of: "+itemnumber+" ("+itemrev+") "+itemdescription);
             })
             .catch(error => {
                 console.error("error: " + error);
@@ -253,20 +280,6 @@ function processDocs(url,changenumber,changedescription,itemnumber,itemrev){
             });                
    
 }
-
-function getAOAttachUrl(item){
-  let links = item.links;
-  for (let k = 0; k < links.length; k++) {
-      let link = links[k];
-      if (link.name == 'changeOrderAffectedItemAttachment') {
-         let href = link.href;
-         let url = href + "?fields=FileName,DownloadInfo,Description&onlyData=true";
-         return url;
-      }
-  } 
-  return "";  
-}
-
 
 function changenextphase(items){
      for(let i=0;i<items.length;i++){
@@ -278,17 +291,13 @@ function changenextphase(items){
              let item=aos[i];
              let itemnumber=item.ItemNumber;
              let itemrev=item.NewItemRevision;
-             let href=getAOAttachUrl(item);
-             if(href.length>0){                               
-               processDocs(href,changenumber,changedescription,itemnumber,itemrev);
-               console.log("spawned off "+item.ItemNumber);
-             }
+             processaffecteditems(itemnumber,itemrev);
+             console.log("processing "+itemnumber+" ("+itemrev+")");
          }
      }       
 }
 
 function getAllPendingChangesAndAffectedItems(){
-    let defchangeselval="ARCO_Commercial_Release_Cork";
     let url = changesapiurl + "?q=ChangeNotice=" + change + "&expand=changeOrderAffectedObject&links=child&totalResults=true";
 
     for(let i=0;i<currdetails.length;i++)
@@ -316,6 +325,113 @@ function getAllPendingChangesAndAffectedItems(){
                 alert("error: " + error);
             });
 }
+
+function markup(filename,dlurl){
+  downloadFile(filename,dlurl,dlf); 
+}
+
+function dlf(blob,filename){
+   let url=downloadproxyurl+'?filename='+filename+"&username="+username;
+   fetch(url,{method:'POST',headers:{'content-type': 'application/octet-stream'},body: blob})//mode:'no-cors' doesn't allow setting content-type!!!
+   .then(response => {
+       if(!response.ok)
+         throw new Error('http error: '+response.status);
+       return response.json();
+   })
+   .then(data => {
+      if(data.error!=undefined)
+        throw new Error('app response error: '+data.error);
+      //if(data.file==undefined)
+        //throw new Error('app didn't return file name and path');
+      console.log('filename='+data.file);
+      loadautovue(data.file);
+   })
+   .catch(error => {
+       console.error("error: "+error);
+   });  
+}
+
+function downloadFile(filename,url,cb){
+    fetch(url,{method:"GET",headers:{"Authorization": "Basic "+auth64}}) 
+    .then(response => {
+       if(!response.ok)
+         throw new Error('http error: '+response.status);
+       return response.blob();
+    })
+    .then(blob => {
+       cb(blob,filename);
+    })
+    .catch(error => {
+       console.error("error: "+error);
+    });
+}
+
+function loadautovue(filename){
+  if(filename.endsWith(".pdf"))
+     callAV("setFile",filename);
+  else{
+     filename=filename.substring(filename.lastIndexOf("\\")+1);
+     callAV("openMarkup",filename); 
+  }
+}
+
+function closeavwin(){
+   callAV('closeDocument',"");
+}
+
+function avexit(){
+   callAV('invokeAction',"VueActionFileExit");
+}
+
+function callAV(method,filenamepath){
+    let params=[];
+
+    if(avinit>0){
+      if(method=="setFile"){
+        if(filenamepath.length>0)
+          params=["upload://"+filenamepath,null];
+        else
+          params=["",null]; 
+      }else if(method=='openMarkup'){
+        params=["CSI_DocName="+filenamepath,null];
+      }else if(method=='closeDocument')
+        params=[null];
+      else if(method=='invokeAction')
+        params=[filenamepath,null]; //other commands???
+    }
+
+    let cmd="";
+    
+    if(avinit==0)
+        cmd={"jsonrpc":"2.0","id":0,"method":"init", "params": [null]};
+   // else if(avinit==1)
+     //   cmd={"jsonrpc":"2.0","id":0,"method":"setFile", "params": ["",null]};
+    else
+        cmd={"jsonrpc":"2.0","id":0,"method":method, "params": params};
+
+    fetch(avurl,{method:"POST",body: JSON.stringify(cmd)})
+            .then(response => {
+                if (!response.ok)
+                    throw new Error('http error: ' + response.status);
+                return response.json();
+            })
+            .then(json => {
+                console.log("avinit="+avinit);
+                console.log("("+JSON.stringify(cmd)+") "+" av response="+JSON.stringify(json));
+                if(avinit==0){
+                   avinit=1;
+                   setTimeout(function(){callAV(method,filenamepath);},1000);
+                }else if(avinit==1){
+                   avinit=2;
+                   //setTimeout(function(){callAV(method,filenamepath);},1100);
+                }
+            })
+            .catch(error => {
+              console.error("error: "+error);
+              alert("error: "+error);
+            });
+}
+
 </script>
 </head>
 <body>
