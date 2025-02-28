@@ -68,7 +68,11 @@ i{color:lightsteelblue;}
 </style>
 
 <script type="text/javascript">
+var un="john.dunbar";
+var pw="z6^n%cE7";
+var auth64 = btoa(un + ":" + pw);
 var jwttoken="";
+var authtxt="Basic "+auth64;
 
 function init(){
  if (typeof window.addEventListener === 'function'){
@@ -85,7 +89,7 @@ function init(){
 }
 function receiveJWTToken(token){
   jtwttoken=token;
-  alert(token);
+  authtxt="Bearer "+token;
 }
 init();
 </script>
@@ -96,9 +100,6 @@ var change = "";
 var username = "";
 
 var currdetails=[];
-var un="john.dunbar";
-var pw="z6^n%cE7";
-var auth64 = btoa(un + ":" + pw);
 const urlParams = new URLSearchParams(window.location.search);
 var itemsapiurl = "https://fa-etao-dev22-saasfademo1.ds-fa.oraclepdemos.com:443/fscmRestApi/resources/11.13.18.05/itemsV2";
 var changesapiurl = "https://fa-etao-dev22-saasfademo1.ds-fa.oraclepdemos.com:443/fscmRestApi/resources/11.13.18.05/productChangeOrdersV2";
@@ -106,6 +107,7 @@ var avurl = "http://localhost:8888";
 var downloadproxyurl="http://localhost:8080/examples/download.jsp";
 var cloudurl="/examples/cloud-arrow-up-solid.svg";
 var avinit=0;
+var authtxt="Basic";
 
 var spacer="&nbsp;&nbsp;&nbsp;-&nbsp;&nbsp;&nbsp;";
 
@@ -298,7 +300,7 @@ function processattachments(itemnumber,itemrev,itemdescription,revatts){
 function itemnextphase(itemnumber,itemrev,itemdescription,href){
         let url=href+"/child/ItemRevision?q=RevisionCode="+itemrev+"&fields=RevisionCode,RevisionAttachment&expand=RevisionAttachment&links=enclosure";
 
-        fetch(url, { method: "GET", headers: { "Authorization": "Basic " + auth64 } })
+        fetch(url, { method: "GET", headers: { "Authorization": authtxt } })
             .then(response => {
                 if (!response.ok)
                     throw new Error('http error: ' + response.status);
@@ -322,7 +324,7 @@ function itemnextphase(itemnumber,itemrev,itemdescription,href){
 function processaffecteditems(itemnumber,itemrev){
         let url=itemsapiurl+"?q=ItemNumber="+itemnumber+"&fields=ItemDescription&links=self";
 
-        fetch(url, { method: "GET", headers: { "Authorization": "Basic " + auth64 } })
+        fetch(url, { method: "GET", headers: { "Authorization": authtxt } })
             .then(response => {
                 if (!response.ok)
                     throw new Error('http error: ' + response.status);
@@ -366,7 +368,7 @@ function getAllPendingChangesAndAffectedItems(){
 
     //$('#ldr').jqxLoader('open');
 
-    fetch(url, { method: "GET", headers: { "Authorization": "Basic " + auth64 } })
+    fetch(url, { method: "GET", headers: { "Authorization": authtxt} })
             .then(response => {
                 if (!response.ok)
                     throw new Error('http error: ' + response.status);
@@ -413,7 +415,7 @@ function dlf(blob,filename){
 }
 
 function downloadFile(filename,url,cb){
-    fetch(url,{method:"GET",headers:{"Authorization": "Basic "+auth64}}) 
+    fetch(url,{method:"GET",headers:{"Authorization": authtxt}}) 
     .then(response => {
        if(!response.ok)
          throw new Error('http error: '+response.status);
