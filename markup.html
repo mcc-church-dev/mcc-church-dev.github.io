@@ -68,64 +68,51 @@ i{color:lightsteelblue;}
 </style>
 
 <script type="text/javascript">
-var un="john.dunbar";
-var pw="z6^n%cE7";
-var auth64 = btoa(un + ":" + pw);
-var jwttoken="";
-var authtxt="Basic "+auth64;
-
-function init(){
- if (typeof window.addEventListener === 'function'){
-   window.addEventListener('message', receiveJWTToken,false);
- }else if (typeof window.attachEvent == 'function'){
-   window.attachEvent('onemessage', receiveJWTToken);
- }else{
-   throw new Error("Browser doesn't support addEventListener or attachEvent");
- }
- payload = {}
- payload.origin = window.frames.origin;
- payload.method = 'requestJwtToken'
- window.parent.postMessage(JSON.stringify(payload), '*');
-}
-function receiveJWTToken(token){
-  jwttoken=token.data;
-  //authtxt="Bearer "+jwttoken;
-  console.log(authtxt);
-}
-init();
-</script>
-
-<script>
-
 var change = "";
 var username = "";
-
 var currdetails=[];
-const urlParams = new URLSearchParams(window.location.search);
 var itemsapiurl = "https://fa-etao-dev22-saasfademo1.ds-fa.oraclepdemos.com:443/fscmRestApi/resources/11.13.18.05/itemsV2";
 var changesapiurl = "https://fa-etao-dev22-saasfademo1.ds-fa.oraclepdemos.com:443/fscmRestApi/resources/11.13.18.05/productChangeOrdersV2";
 var avurl = "http://localhost:8888";
 var downloadproxyurl="http://localhost:8080/examples/download.jsp";
 var cloudurl="/examples/cloud-arrow-up-solid.svg";
 var avinit=0;
-var authtxt="Basic";
-
 var spacer="&nbsp;&nbsp;&nbsp;-&nbsp;&nbsp;&nbsp;";
+var un="john.dunbar";
+var pw="z6^n%cE7";
+var auth64 = btoa(un + ":" + pw);
+var jwttoken="";
+//var authtxt="Basic "+auth64;
+var authtxt="";
+
+function init(){
+  if (typeof window.addEventListener === 'function'){
+    window.addEventListener('message', receiveJWTToken,false);
+  }else if (typeof window.attachEvent == 'function'){
+    window.attachEvent('onemessage', receiveJWTToken);
+  }else{
+    throw new Error("Browser doesn't support addEventListener or attachEvent");
+  }
+  payload = {}
+  payload.origin = window.frames.origin;
+  payload.method = 'requestJwtToken'
+  window.parent.postMessage(JSON.stringify(payload), '*');
+}
+
+function receiveJWTToken(token){
+  jwttoken=token.data;
+  authtxt="Bearer "+jwttoken;
+  console.log(authtxt);
+  getAllPendingChangesAndAffectedItems();
+}
 
 window.onload = (event) => {
-
+    const urlParams = new URLSearchParams(window.location.search);
     change = urlParams.get('change');
     username = urlParams.get('username');
 
-    if(change==undefined || change.length<0)
-      change="ARCO-COM-00035";
-
-    if(change!=undefined && change.length>0){
-       setTimeout(() => {getAllPendingChangesAndAffectedItems();}, "3000");      
-    }
-
-    authtxt="Bearer eyJ4NXQiOiJGSTU5T1I0eVRMdUE4b1B4VXFuNkcta3NUaW8iLCJraWQiOiJ0cnVzdHNlcnZpY2UiLCJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJzdWIiOiJzcGYiLCJpc3MiOiJ3d3cub3JhY2xlLmNvbSIsImV4cCI6MTc0MDc5OTY1MCwicHJuIjoic3BmIiwiaWF0IjoxNzQwNzg1MjUwfQ.QNG9NbRhuZ1cwKnc2kDDuu7YJUDJg6FwHQocMEvyOaRvy6_YT6xQF2cWG9W9ZHNkw6bPuw7gG0QM-O_69XqtxUG36yJ8LObQvHQlEe3J-yCFj58PwK_bEWKkCxghXKxpJYHh0bgOxhp1HjIm8wpR2ZTF5GSlKYAy8hDjhTs-0vTI_AcVSPNZsktRN1hPSZPiccw7HkSUf4dbR-8AfyEvX3EAANa7uhsuv6YiyEdRJ5StVi_OgJ3iEzcxO-DPIlYrh3rym3XbReoCqsXn3c3XxhioutIDoyfhUTKkRh1oMcMQcwKQy8Edf_JsBcexiWUU30Ho_pYua4ax5wwSkTOvbA";
-};
+    init();
+}
 
 function finish(){
   var rows = $('tr').not(':first');
@@ -372,7 +359,7 @@ function getAllPendingChangesAndAffectedItems(){
 
     //$('#ldr').jqxLoader('open');
 
-    authtxt="Bearer eyJ4NXQiOiJGSTU5T1I0eVRMdUE4b1B4VXFuNkcta3NUaW8iLCJraWQiOiJ0cnVzdHNlcnZpY2UiLCJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJzdWIiOiJzcGYiLCJpc3MiOiJ3d3cub3JhY2xlLmNvbSIsImV4cCI6MTc0MDc5OTY1MCwicHJuIjoic3BmIiwiaWF0IjoxNzQwNzg1MjUwfQ.QNG9NbRhuZ1cwKnc2kDDuu7YJUDJg6FwHQocMEvyOaRvy6_YT6xQF2cWG9W9ZHNkw6bPuw7gG0QM-O_69XqtxUG36yJ8LObQvHQlEe3J-yCFj58PwK_bEWKkCxghXKxpJYHh0bgOxhp1HjIm8wpR2ZTF5GSlKYAy8hDjhTs-0vTI_AcVSPNZsktRN1hPSZPiccw7HkSUf4dbR-8AfyEvX3EAANa7uhsuv6YiyEdRJ5StVi_OgJ3iEzcxO-DPIlYrh3rym3XbReoCqsXn3c3XxhioutIDoyfhUTKkRh1oMcMQcwKQy8Edf_JsBcexiWUU30Ho_pYua4ax5wwSkTOvbA";
+    /*authtxt="Bearer eyJ4NXQiOiJGSTU5T1I0eVRMdUE4b1B4VXFuNkcta3NUaW8iLCJraWQiOiJ0cnVzdHNlcnZpY2UiLCJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJzdWIiOiJzcGYiLCJpc3MiOiJ3d3cub3JhY2xlLmNvbSIsImV4cCI6MTc0MDc5OTY1MCwicHJuIjoic3BmIiwiaWF0IjoxNzQwNzg1MjUwfQ.QNG9NbRhuZ1cwKnc2kDDuu7YJUDJg6FwHQocMEvyOaRvy6_YT6xQF2cWG9W9ZHNkw6bPuw7gG0QM-O_69XqtxUG36yJ8LObQvHQlEe3J-yCFj58PwK_bEWKkCxghXKxpJYHh0bgOxhp1HjIm8wpR2ZTF5GSlKYAy8hDjhTs-0vTI_AcVSPNZsktRN1hPSZPiccw7HkSUf4dbR-8AfyEvX3EAANa7uhsuv6YiyEdRJ5StVi_OgJ3iEzcxO-DPIlYrh3rym3XbReoCqsXn3c3XxhioutIDoyfhUTKkRh1oMcMQcwKQy8Edf_JsBcexiWUU30Ho_pYua4ax5wwSkTOvbA";*/
 
    console.log("authtxt="+authtxt);
 
