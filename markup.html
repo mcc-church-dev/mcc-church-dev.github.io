@@ -491,7 +491,7 @@ function viewredline(filename,dlurl,mfiles){
 	  }
 	  url=url+url2;
   }
-  fetch(url,{method:"GET",mode:"no-cors"}) 
+  fetch(url,{method:"GET",mode:"cors"}) 
   .then(response => {
      if(!response.ok)
        throw new Error('http error: '+response.status);
@@ -527,7 +527,7 @@ function poll(){
 	
 	  let purl=pollproxyurl+"?change="+change+"&partnumber="+partnumber+"&partrev="+partrev+"&username="+username+"&redlineflag="+redlineflag;
 	  
-	  fetch(purl,{method:"GET",mode:"no-cors"}) 
+	  fetch(purl,{method:"GET",mode:"cors"}) 
 	  .then(response => {
 	     if(!response.ok)
 	       throw new Error('http error: '+response.status);
