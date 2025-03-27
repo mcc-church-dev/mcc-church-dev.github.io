@@ -77,6 +77,7 @@ var changesapiurl = "https://fa-etao-dev22-saasfademo1.ds-fa.oraclepdemos.com:44
 var avurl = "http://localhost:8888";
 var downloadproxyurl="http://localhost:8080/examples/download.jsp";
 var uploadproxyurl="http://localhost:8080/examples/upload.jsp";
+var pollproxyurl="http://localhost:8080/examples/fpoll.jsp";
 var avinit=0;
 var spacer="&nbsp;&nbsp;&nbsp;-&nbsp;&nbsp;&nbsp;";
 var un="JOHN.DUNBAR";
@@ -87,6 +88,9 @@ var corsmode="";
 var downloadupload_el="";
 var firsttime=true;
 var fmap=new Map();
+var modmap=new Map();
+var partnumber,partrev,redlineflag;
+var polltimer;
 
 window.onload = (event) => {
     const urlParams = new URLSearchParams(window.location.search);
@@ -161,28 +165,32 @@ function finish(){
       dets[i].setAttribute('open',true);
 }
 
-//{filename:filename1,filedescr:filedescription,dlurl:downloadurl}
+//partnumber|partrev|filename|dlurl|lastupdatedby
 
 function viewclick(ev){
      downloadupload_el=ev.target;
      let markupinfo=downloadupload_el.getAttribute('data-markupinfo');
      let mis=markupinfo.split("|");
-     let partnumber=mis[0];
-     let pdffilename=mis[1];
-     let pdfdlurl=mis[2];
+     partnumber=mis[0];
+     partrev=mis[1];
+     let pdffilename=mis[2];
+     let pdfdlurl=mis[3];
      let mfiles=fmap.get(partnumber);
-     viewredline(partnumber,pdffilename,pdfdlurl,mfiles,"false");
+     redlineflag="false";
+     viewredline(pdffilename,pdfdlurl,mfiles);
 }
 
 function redlineclick(ev){
     downloadupload_el=ev.target;
     let markupinfo=downloadupload_el.getAttribute('data-markupinfo');
     let mis=markupinfo.split("|");
-    let partnumber=mis[0];
-    let pdffilename=mis[1];
-    let pdfdlurl=mis[2];
+    partnumber=mis[0];
+    partrev=mis[1];
+    let pdffilename=mis[2];
+    let pdfdlurl=mis[3];
     let mfiles=fmap.get(partnumber);
-    viewredline(partnumber,pdffilename,pdfdlurl,mfiles,"true");
+    redlineflag="true";
+    viewredline(pdffilename,pdfdlurl,mfiles);
 }
 
 //[{partnumber:itemnumber,partrev:itemrev,partdescr:itemdescription,files:files}]
@@ -240,7 +248,7 @@ function makedetails(data){
 	      td3.appendChild(butt);
 	      butt.id=pinfo.partrev+"|"+finfo.filename;
 	      butt.addEventListener('click',viewclick);
-	      butt.setAttribute('data-markupinfo',pinfo.partnumber+"|"+finfo.filename+"|"+finfo.dlurl);
+	      butt.setAttribute('data-markupinfo',pinfo.partnumber+"|"+pinfo.partrev+"|"+finfo.filename+"|"+finfo.dlurl);
 	      let td4=tr.insertCell();
 	      let butt2=document.createElement('button');
 	      butt2.innerText="Redline";
@@ -248,7 +256,7 @@ function makedetails(data){
 	      td4.appendChild(butt2);
 	      butt2.id=pinfo.partrev+"|"+finfo.filename;
 	      butt2.addEventListener('click',redlineclick);
-	      butt2.setAttribute('data-markupinfo',pinfo.partnumber+"|"+finfo.filename+"|"+finfo.dlurl);
+	      butt2.setAttribute('data-markupinfo',pinfo.partnumber+"|"+pinfo.partrev+"|"+finfo.filename+"|"+finfo.dlurl);
 	   }//for
 	   details.appendChild(summary);
 	   details.appendChild(tab);
@@ -279,15 +287,16 @@ function processattachments(itemnumber,itemrev,itemdescription,revatts){
          let filename1=pdfs[i][0];
          let filedescription=pdfs[i][1];
          let downloadurl=pdfs[i][2];
-         let lastupdatedby=pdfs[i][3];
-         files1.push({filename:filename1,filedescr:filedescription,dlurl:downloadurl,});
+         let lub=pdfs[i][3];
+         files1.push({filename:filename1,filedescr:filedescription,dlurl:downloadurl,lastupdatedby:lub});
      }
 
      for(let i=0;i<markups.length;i++){
          let filename1=markups[i][0];
          let filedescription=markups[i][1];
          let downloadurl=markups[i][2];
-         files2.push({filename:filename1,filedescr:filedescription,dlurl:downloadurl});
+         let lub=markups[i][3];
+         files2.push({filename:filename1,filedescr:filedescription,dlurl:downloadurl,lastupdatedby:lub});
      }  
      
      fmap.set(itemnumber,files2);
@@ -418,17 +427,15 @@ Url: string
 */
 
 //{filename:filename1,filedescr:filedescription,dlurl:downloadurl}
-function viewredline(partnumber,filename,dlurl,mfiles,redlineflag){
-  let url=downloadproxyurl+"?change="+change+"&partnumber="+partnumber+"&username="+username+"&authtxt="+authtxt+"&pdfname="+filename+"&pdfurl="+dlurl+"&redlineflag="+redlineflag;
+function viewredline(filename,dlurl,mfiles){
+  let url=downloadproxyurl+"?change="+change+"&partnumber="+partnumber+"&partrev="+partrev+"&username="+username+"&authtxt="+authtxt+"&pdfname="+filename+"&pdfurl="+dlurl;
   if(mfiles.length>0){
 	  let url2="&mfiles=";
 	  for(let i=0;i<mfiles.length;i++){
 		let mfile=mfiles[i]; 
-		let mfilename=mfile.filename;
-		let mfdlurl=mfile.dlurl;
-		url2=url2+mfilename+","+mfdlurl;
+		url2=url2+mfile.filename+"$"+mfile.dlurl+"$"+mfile.lastupdatedby;
 		if(i<(mfiles.length-1))
-			url2=url2+";";
+			url2=url2+",";
 	  }
 	  url=url+url2;
   }
@@ -436,14 +443,65 @@ function viewredline(partnumber,filename,dlurl,mfiles,redlineflag){
   .then(response => {
      if(!response.ok)
        throw new Error('http error: '+response.status);
-     return response.text();
+     return response.text();//
   })
   .then(text => {
-     console.log("response="+text);
+     console.log("response="+text);//900024B_V1.johndunbar:1023342545,900024B_V1.spf:12330005
+     if(text.length>0 && text.indexOf(":")>-1){
+	     let v=text.split(",");
+	     for(let i=0;i<v.length;i++){
+	    	 let f=v[i].split(":");
+	    	 modmap.set(f[0],f[1]);
+	     }
+     }
+     if(redlineflag=="true"){
+    	console.log("starting file polling");
+        polltimer=setTimeout(poll,5000);
+     }
   })
   .catch(error => {
      console.error("error: "+error);
   });
+}
+
+function poll(){
+	  
+	  if(redlineflag=="false"){
+		  console.log("clearing timeout");
+		  clearTimeout(polltimer);
+		  return;
+	  }
+	
+	  let purl=pollproxyurl+"?change="+change+"&partnumber="+partnumber+"&partrev="+partrev+"&username="+username+"&redlineflag="+redlineflag;
+	  
+	  fetch(purl,{method:"GET"}) 
+	  .then(response => {
+	     if(!response.ok)
+	       throw new Error('http error: '+response.status);
+	     return response.text();
+	  })
+	  .then(text => {
+	     console.log("response="+text);//900024B_V1.johndunbar:1023342545,900024B_V1.spf:12330005
+	     if(text.length>0){
+		     let v=text.split(",");
+		     let updated="";
+		     for(let i=0;i<v.length;i++){
+		    	 let f=v[i].split(":");
+		    	 let markupfile=f[0];
+		    	 let lastcsum=modmap.get(f[0]);
+		    	 let latestcsum=f[1];
+		    	 if(latestcsum!=lastcsum)
+		    		updated=updated+markupfile+", "; 
+		    	 modmap.set(markupfile,latestcsum);
+		     }
+		     if(updated.length>0)
+		         alert("The following markups were updated: "+updated);
+	     }
+	     setTimeout(poll,5000);
+	  })
+	  .catch(error => {
+	     console.error("error: "+error);
+	  });
 }
 
 </script>
