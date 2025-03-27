@@ -369,6 +369,7 @@ function getAllPendingChangesAndAffectedItems(){
     //$('#ldr').jqxLoader('open');
 
    console.log("authtxt="+authtxt);
+   let corsmode="cors";
 
     fetch(url, { method: "GET", mode: corsmode, headers: { "Authorization": authtxt} })
             .then(response => {
@@ -389,52 +390,6 @@ function getAllPendingChangesAndAffectedItems(){
                 console.error("error: " + error);
                 alert("error: " + error);
             });
-}
-
-function uploadnext(filename,abuff,uploadurl){
-   //mode:corsmode
-   fetch(uploadurl,{method:'PUT',headers:{'content-type': 'application/octet-stream','Authorization': authtxt},body: abuff})
-   .then(response => {
-       if(!response.ok)
-         throw new Error('http error: '+response.status);
-       return response;
-   })
-   .then(response => {
-      //nothing in response
-      console.log('uploaded '+filename);
-      let stat=document.getElementById('td|'+downloadupload_el.id);
-      if(stat.innerText!="Read-Only")
-         stat.innerText="Checked-In";
-   })
-   .catch(error => {
-       console.error("error: "+error);
-   });
-}
-
-function upload(filename,uploadurl){
-   let url=uploadproxyurl+'?filename='+filename+"&username="+username;
-   fetch(url,{method:'GET'})//mode:'no-cors' doesn't allow setting content-type!!!
-   .then(response => {
-       if(!response.ok)
-         throw new Error('http error: '+response.status);
-       return response.arrayBuffer();
-   })
-   .then(abuff => {
-      //if(abuff.length<500)
-        //throw new Error('error: '+bin2String(abuff));
-      uploadnext(filename,abuff,uploadurl);
-   })
-   .catch(error => {
-       console.error("error: "+error);
-   });
-}
-
-function bin2String(array) {
-  var result = "";
-  for (var i = 0; i < array.length; i++) {
-    result += String.fromCharCode(parseInt(array[i], 2));
-  }
-  return result;
 }
 
 /*upload attachments  Grab EVERYTHING from revision attachment
@@ -489,118 +444,6 @@ function viewredline(partnumber,filename,dlurl,mfiles,redlineflag){
   .catch(error => {
      console.error("error: "+error);
   });
-}
-
-function dlf(blob,filename){
-   superblob=blob;
-   let url=downloadproxyurl+'?filename='+filename+"&username="+username;
-   fetch(url,{method:'POST',headers:{'content-type': 'application/octet-stream'},body: blob})//mode:'no-cors' doesn't allow setting content-type!!!
-   .then(response => {
-       if(!response.ok)
-         throw new Error('http error: '+response.status);
-       return response.json();
-   })
-   .then(data => {
-      if(data.error!=undefined)
-        throw new Error('app response error: '+data.error);
-      //if(data.file==undefined)
-        //throw new Error('app didn't return file name and path');
-      console.log('downloaded and transferred filename='+data.file);
-      loadautovue(data.file);
-   })
-   .catch(error => {
-       console.error("error: "+error);
-   });  
-}
-
-function downloadFile(filename,url,cb){
-    fetch(url,{method:"GET",headers:{"Authorization": authtxt}}) 
-    .then(response => {
-       if(!response.ok)
-         throw new Error('http error: '+response.status);
-       return response.blob();
-    })
-    .then(blob => {
-       cb(blob,filename);
-    })
-    .catch(error => {
-       console.error("error: "+error);
-    });
-}
-
-function loadautovue(filename){
-  if(filename.endsWith(".pdf"))
-     callAV("setFile",filename);
-  else{
-     filename=filename.substring(filename.lastIndexOf("\\")+1);
-     callAV("openMarkup",filename); 
-  }
-}
-
-function reload(){
-}
-
-function closeavwin(){
-   callAV('closeDocument',"");
-}
-
-function avexit(){
-   callAV('invokeAction',"VueActionFileExit");
-}
-
-function callAV(method,filenamepath){
-    let params=[];
-
-    if(avinit>0){
-      if(method=="setFile"){
-        if(filenamepath.length>0)
-          params=["upload://"+filenamepath,null];
-        else
-          params=["",null]; 
-      }else if(method=='openMarkup'){
-        params=["CSI_DocName="+filenamepath,null];
-      }else if(method=='closeDocument')
-        params=[null];
-      else if(method=='invokeAction')
-        params=[filenamepath,null]; //other commands???
-    }
-
-    let cmd="";
-    
-    if(avinit==0)
-        cmd={"jsonrpc":"2.0","id":0,"method":"init", "params": [null]};
-   // else if(avinit==1)
-     //   cmd={"jsonrpc":"2.0","id":0,"method":"setFile", "params": ["",null]};
-    else
-        cmd={"jsonrpc":"2.0","id":0,"method":method, "params": params};
-
-    fetch(avurl,{method:"POST",body: JSON.stringify(cmd)})
-            .then(response => {
-                if (!response.ok)
-                    throw new Error('http error: ' + response.status);
-                return response.json();
-            })
-            .then(json => {
-                console.log("avinit="+avinit);
-                console.log("("+JSON.stringify(cmd)+") "+" av response="+JSON.stringify(json));
-                if(avinit==0){
-                   avinit=1;
-                   setTimeout(function(){callAV(method,filenamepath);},1000);
-                }else if(avinit==1){
-                   avinit=2;
-                   //setTimeout(function(){callAV(method,filenamepath);},1100);
-                   
-                }
-                if(method=='setFile' || method=='openMarkup'){
-                   let stat=document.getElementById('td|'+downloadupload_el.id);
-                   if(stat.innerText!="Read-Only")
-                     stat.innerText="In-AutoVue";
-                }
-            })
-            .catch(error => {
-              console.error("error: "+error);
-              alert("error: "+error);
-            });
 }
 
 </script>
