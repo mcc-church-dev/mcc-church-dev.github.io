@@ -10,7 +10,7 @@
 .butt{
    font-family: "Roboto", sans-serif;font-size:10px;
    padding:1px;
-   margin-left:14px;
+   margin-left:1px;
 }
 
 .butt2{
@@ -31,7 +31,7 @@ tr { cursor: default; padding: 10px;height:30px;text-align:left;vertical-align:m
 th {border:solid 1px whitesmoke;color:black;padding: 4px;font-family: "Roboto", sans-serif;font-size:12px;}
 
 .tab2{
-  width: 600px;
+  width: 400px;
   border:solid 1px lightgray;
   font-style:bold;
 }
@@ -40,7 +40,7 @@ summary{padding:4px;color:black;font-family: "Roboto", sans-serif;font-size:14px
 
 details{
   padding: 8px;
-  width:600px;
+  width:400px;
   border:solid 1px whitesmoke;
   background-color: white;
  box-shadow: 1px 1px 2px whitesmoke; 
@@ -51,7 +51,7 @@ details{
   margin-top:8px;
   background-color:white;
   padding:4px;
-  width:600px;
+  width:400px;
   /* border:solid 1px lightgray; */
   overflow:auto;
 }
@@ -64,25 +64,43 @@ td{font-family: "Roboto", sans-serif;font-size:12px;padding:6px;}
 
 .col2{width:200px;}
 
-i{color:lightsteelblue;}
+i{color:rgb(128, 128, 128);}
 </style>
 
 <script type="text/javascript">
 var change = "";
 var username = "";
 var currdetails=[];
-var itemsapiurl = "https://fa-etao-dev22-saasfademo1.ds-fa.oraclepdemos.com:443/fscmRestApi/resources/11.13.18.05/itemsV2";
-var changesapiurl = "https://fa-etao-dev22-saasfademo1.ds-fa.oraclepdemos.com:443/fscmRestApi/resources/11.13.18.05/productChangeOrdersV2";
+var apiversion="latest";//11.13.18.05
+var itemsapiurl = "https://fa-etao-dev22-saasfademo1.ds-fa.oraclepdemos.com:443/fscmRestApi/resources/"+apiversion+"/itemsV2";
+var changesapiurl = "https://fa-etao-dev22-saasfademo1.ds-fa.oraclepdemos.com:443/fscmRestApi/resources/"+apiversion+"/productChangeOrdersV2";
 var avurl = "http://localhost:8888";
 var downloadproxyurl="http://localhost:8080/examples/download.jsp";
-var cloudurl="/examples/cloud-arrow-up-solid.svg";
+var uploadproxyurl="http://localhost:8080/examples/upload.jsp";
 var avinit=0;
 var spacer="&nbsp;&nbsp;&nbsp;-&nbsp;&nbsp;&nbsp;";
-var un="john.dunbar";
-var pw="z6^n%cE7";
+var un="JOHN.DUNBAR";
+var pw="Hf?K3U#2";
 var auth64 = btoa(un + ":" + pw);
-//var authtxt="Basic "+auth64;
 var authtxt="";
+var corsmode="";
+var downloadupload_el="";
+var firsttime=true;
+var fmap=new Map();
+
+window.onload = (event) => {
+    const urlParams = new URLSearchParams(window.location.search);
+    change = urlParams.get('change');
+    username = urlParams.get('username');
+    if(window.location.hostname.indexOf("127.")>-1 || window.location.hostname.indexOf("localhost")>-1){
+       authtxt="Basic "+auth64;
+       corsmode="cors";
+       getAllPendingChangesAndAffectedItems();
+    }else{
+      coresmod="cors";
+      init();
+    }
+}
 
 function init(){
   if (typeof window.addEventListener === 'function'){
@@ -99,18 +117,13 @@ function init(){
 }
 
 function receiveJWTToken(msg){
+  console.log("got jwt");
   if(msg.data!=undefined && msg.data.length>50){
      authtxt="Bearer "+msg.data;
-     getAllPendingChangesAndAffectedItems();
-  }else
-     console.log("authtxt too short!");
-}
-
-window.onload = (event) => {
-    const urlParams = new URLSearchParams(window.location.search);
-    change = urlParams.get('change');
-    username = urlParams.get('username');
-    init();
+     if(firsttime)
+        getAllPendingChangesAndAffectedItems();
+     firsttime=false;
+  }
 }
 
 function finish(){
@@ -148,105 +161,98 @@ function finish(){
       dets[i].setAttribute('open',true);
 }
 
-function markupclick(ev){
-     let markupinfo=ev.target.getAttribute('data-markupinfo');
+//{filename:filename1,filedescr:filedescription,dlurl:downloadurl}
+
+function viewclick(ev){
+     downloadupload_el=ev.target;
+     let markupinfo=downloadupload_el.getAttribute('data-markupinfo');
      let mis=markupinfo.split("|");
-     let filename=mis[0];
-     let dlurl=mis[1];
-     markup(filename,dlurl);
-     let id=ev.target.id;
-     let stat=document.getElementById('td|'+id);
-     stat.innerText="In-AutoVue";
+     let partnumber=mis[0];
+     let pdffilename=mis[1];
+     let pdfdlurl=mis[2];
+     let mfiles=fmap.get(partnumber);
+     viewredline(partnumber,pdffilename,pdfdlurl,mfiles,"false");
 }
 
+function redlineclick(ev){
+    downloadupload_el=ev.target;
+    let markupinfo=downloadupload_el.getAttribute('data-markupinfo');
+    let mis=markupinfo.split("|");
+    let partnumber=mis[0];
+    let pdffilename=mis[1];
+    let pdfdlurl=mis[2];
+    let mfiles=fmap.get(partnumber);
+    viewredline(partnumber,pdffilename,pdfdlurl,mfiles,"true");
+}
+
+//[{partnumber:itemnumber,partrev:itemrev,partdescr:itemdescription,files:files}]
 function makedetails(data){
   let topdiv=document.getElementById('top');
   for(let i=0;i<data.length;i++){
-   let pinfo=data[i];
-   let details=document.createElement("details");
-   details.id="d"+i;
-   details.classList.add('detailsclass');
-   currdetails.push(details)
-   let summary=document.createElement("summary");
-   if(pinfo.partdescr!=undefined && pinfo.partdescr.length>0) 
-        summary.innerHTML="&nbsp;&nbsp;&nbsp;"+pinfo.partrev+spacer+pinfo.partdescr;
-   else 
-        summary.innerHTML="&nbsp;&nbsp;&nbsp;"+pinfo.partrev
-   let tab=document.createElement('table');
-   tab.classList.add('tab1');
-   for(let j=0;j<pinfo.files.length;j++){
-      let finfo=pinfo.files[j];
-      if(j==0){
-        let tr=tab.insertRow();
-        let td1=document.createElement("th");
-        td1.classList.add('col1');
-        td1.appendChild(document.createTextNode("Title"));
-        tr.appendChild(td1);
-        let td2=document.createElement("th");
-        td2.classList.add('col2');
-        td2.appendChild(document.createTextNode("Description"));
-        tr.appendChild(td2);
-        let td3=document.createElement("th");
-        td3.appendChild(document.createTextNode("Category"));
-        tr.appendChild(td3);
-        let td4=document.createElement("th");
-        td4.appendChild(document.createTextNode("Status"));
-        tr.appendChild(td4);
-        td4.style="width:100px;"
-        let td5=document.createElement("th");
-        td5.appendChild(document.createTextNode(""));
-        tr.appendChild(td5);
-        let td6=document.createElement("th");
-        td6.appendChild(document.createTextNode(""));
-        tr.appendChild(td6)
-        let td7=document.createElement("th");
-        td7.appendChild(document.createTextNode(""));
-        tr.appendChild(td7)
-      }
-      let tr=tab.insertRow();
-      let td1=tr.insertCell();
-      td1.classList.add('col1');
-      let ic=document.createElement("i");
-      ic.classList.add('fa-regular');
-      if(finfo.filename.endsWith(".pdf"))
-         ic.classList.add('fa-file-pdf');
-      else
-         ic.classList.add('fa-file');
-      td1.appendChild(ic);
-      let sp=document.createElement("span");
-      sp.classList.add('spacer');
-      td1.appendChild(sp);
-      td1.appendChild(document.createTextNode(finfo.filename));
-      let td2=tr.insertCell();
-      td2.classList.add('col2');
-      td2.appendChild(document.createTextNode(finfo.filedescr));
-      let td3=tr.insertCell();
-      td3.appendChild(document.createTextNode("Drawing"));
-      let td4=tr.insertCell();
-      td4.id="td|"+pinfo.partrev+"|"+finfo.filename;
-      td4.appendChild(document.createTextNode("Unchanged"));
-      let td5=tr.insertCell();
-      let butt=document.createElement('button');
-      butt.innerText="Markup";
-      butt.classList.add('butt');
-      td5.appendChild(butt);
-      butt.id=pinfo.partrev+"|"+finfo.filename;
-      butt.addEventListener('click',markupclick);
-      butt.setAttribute('data-markupinfo',finfo.filename+"|"+finfo.dlurl);
-      let butt2=document.createElement('button');
-      butt2.innerHTML='<i class="fa-solid fa-cloud-arrow-up" style="color:black;width:18px;height:15px;"></i>';
-      butt2.classList.add('butt2');
-      let td6=tr.insertCell();
-      td6.appendChild(butt2);
-      let butt3=document.createElement('button');
-      butt3.innerHTML='<i class="fa-solid fa-rotate" style="color:black;"></i>';
-      butt3.classList.add('butt3');
-      let td7=tr.insertCell();
-      td7.appendChild(butt3);
-   }//for
-   details.appendChild(summary);
-   details.appendChild(tab);
-   topdiv.appendChild(details);
+	   let pinfo=data[i];
+	   let details=document.createElement("details");
+	   details.id="d"+i;
+	   details.classList.add('detailsclass');
+	   currdetails.push(details)
+	   let summary=document.createElement("summary");
+	   if(pinfo.partdescr!=undefined && pinfo.partdescr.length>0) 
+	        summary.innerHTML="&nbsp;&nbsp;&nbsp;"+pinfo.partnumber+"&nbsp;("+pinfo.partrev+")"+spacer+pinfo.partdescr;
+	   else 
+	        summary.innerHTML="&nbsp;&nbsp;&nbsp;"+pinfo.partnumber+"&nbsp;("+pinfo.partrev+")"
+	   let tab=document.createElement('table');
+	   tab.classList.add('tab1');
+	   for(let j=0;j<pinfo.files.length;j++){//just pdf
+	      let finfo=pinfo.files[j];
+	      if(j==0){
+	        let tr=tab.insertRow();
+	        let td1=document.createElement("th");
+	        td1.classList.add('col1');
+	        td1.appendChild(document.createTextNode("FileName"));
+	        tr.appendChild(td1);
+	        let td2=document.createElement("th");
+	        td2.classList.add('col2');
+	        td2.appendChild(document.createTextNode("Description"));
+	        tr.appendChild(td2);
+	        let td3=document.createElement("th");
+	        td3.appendChild(document.createTextNode(""));
+	        tr.appendChild(td3);
+	        let td4=document.createElement("th");
+	        td4.appendChild(document.createTextNode(""));
+	        tr.appendChild(td4)
+	      }
+	      let tr=tab.insertRow();
+	      let td1=tr.insertCell();
+	      td1.classList.add('col1');
+	      let ic=document.createElement("i");
+	      ic.classList.add('fa-file-pdf');
+	      td1.appendChild(ic);
+	      let sp=document.createElement("span");
+	      sp.classList.add('spacer');
+	      td1.appendChild(sp);
+	      td1.appendChild(document.createTextNode(finfo.filename));
+	      let td2=tr.insertCell();
+	      td2.classList.add('col2');
+	      td2.appendChild(document.createTextNode(finfo.filedescr));      
+	      let td3=tr.insertCell();
+	      let butt=document.createElement('button');
+	      butt.innerText="View";
+	      butt.classList.add('butt');
+	      td3.appendChild(butt);
+	      butt.id=pinfo.partrev+"|"+finfo.filename;
+	      butt.addEventListener('click',viewclick);
+	      butt.setAttribute('data-markupinfo',pinfo.partnumber+"|"+finfo.filename+"|"+finfo.dlurl);
+	      let td4=tr.insertCell();
+	      let butt2=document.createElement('button');
+	      butt2.innerText="Redline";
+	      butt2.classList.add('butt');
+	      td4.appendChild(butt2);
+	      butt2.id=pinfo.partrev+"|"+finfo.filename;
+	      butt2.addEventListener('click',redlineclick);
+	      butt2.setAttribute('data-markupinfo',pinfo.partnumber+"|"+finfo.filename+"|"+finfo.dlurl);
+	   }//for
+	   details.appendChild(summary);
+	   details.appendChild(tab);
+	   topdiv.appendChild(details);
   }//for
 }
 
@@ -257,11 +263,12 @@ function processattachments(itemnumber,itemrev,itemdescription,revatts){
      let markups=[];
      
      let files1=[];
+     let files2=[];
 
      for(let i=0;i<revatts.length;i++){
        let revatt=revatts[i];
        //UserName (aka category),CreatedByUserName,LastUpdateDate,LastUpdatedBy
-       let finfo=[revatt.FileName,revatt.Description,revatt.links[0].href];  
+       let finfo=[revatt.FileName,revatt.Description,revatt.links[0].href,revatt.LastUpdatedBy];  
          if(finfo[0].endsWith(".pdf"))
            pdfs.push(finfo);
          else
@@ -272,17 +279,20 @@ function processattachments(itemnumber,itemrev,itemdescription,revatts){
          let filename1=pdfs[i][0];
          let filedescription=pdfs[i][1];
          let downloadurl=pdfs[i][2];
-         files1.push({filename:filename1,filedescr:filedescription,dlurl:downloadurl});
+         let lastupdatedby=pdfs[i][3];
+         files1.push({filename:filename1,filedescr:filedescription,dlurl:downloadurl,});
      }
 
      for(let i=0;i<markups.length;i++){
          let filename1=markups[i][0];
          let filedescription=markups[i][1];
          let downloadurl=markups[i][2];
-         files1.push({filename:filename1,filedescr:filedescription,dlurl:downloadurl});
+         files2.push({filename:filename1,filedescr:filedescription,dlurl:downloadurl});
      }  
+     
+     fmap.set(itemnumber,files2);
  
-     let data=[{partrev:itemnumber+" ("+itemrev+")",partdescr:itemdescription,files:files1}];
+     let data=[{partnumber:itemnumber,partrev:itemrev,partdescr:itemdescription,files:files1}];
      makedetails(data);
      finish();   
 }
@@ -360,7 +370,7 @@ function getAllPendingChangesAndAffectedItems(){
 
    console.log("authtxt="+authtxt);
 
-    fetch(url, { method: "GET", mode: "cors", headers: { "Authorization": authtxt} })
+    fetch(url, { method: "GET", mode: corsmode, headers: { "Authorization": authtxt} })
             .then(response => {
                 if (!response.ok)
                     throw new Error('http error: ' + response.status);
@@ -381,11 +391,108 @@ function getAllPendingChangesAndAffectedItems(){
             });
 }
 
-function markup(filename,dlurl){
-  downloadFile(filename,dlurl,dlf); 
+function uploadnext(filename,abuff,uploadurl){
+   //mode:corsmode
+   fetch(uploadurl,{method:'PUT',headers:{'content-type': 'application/octet-stream','Authorization': authtxt},body: abuff})
+   .then(response => {
+       if(!response.ok)
+         throw new Error('http error: '+response.status);
+       return response;
+   })
+   .then(response => {
+      //nothing in response
+      console.log('uploaded '+filename);
+      let stat=document.getElementById('td|'+downloadupload_el.id);
+      if(stat.innerText!="Read-Only")
+         stat.innerText="Checked-In";
+   })
+   .catch(error => {
+       console.error("error: "+error);
+   });
+}
+
+function upload(filename,uploadurl){
+   let url=uploadproxyurl+'?filename='+filename+"&username="+username;
+   fetch(url,{method:'GET'})//mode:'no-cors' doesn't allow setting content-type!!!
+   .then(response => {
+       if(!response.ok)
+         throw new Error('http error: '+response.status);
+       return response.arrayBuffer();
+   })
+   .then(abuff => {
+      //if(abuff.length<500)
+        //throw new Error('error: '+bin2String(abuff));
+      uploadnext(filename,abuff,uploadurl);
+   })
+   .catch(error => {
+       console.error("error: "+error);
+   });
+}
+
+function bin2String(array) {
+  var result = "";
+  for (var i = 0; i < array.length; i++) {
+    result += String.fromCharCode(parseInt(array[i], 2));
+  }
+  return result;
+}
+
+/*upload attachments  Grab EVERYTHING from revision attachment
+AttachedDocumentId: integer (int64)
+CategoryName: string
+ContentRepositoryFileShared: boolean
+DatatypeCode: string
+Description: string
+DmDocumentId: string
+DmFolderPath: string
+DmVersionNumber: string
+DownloadInfo: string
+ErrorStatusCode: string
+ErrorStatusMessage: string
+ExpirationDate: string (date-time)
+FileContents: string (byte)
+FileName: string
+FileUrl: string
+Title: string
+UploadedFileContentType: string
+UploadedFileLength: integer
+UploadedFileName: string
+UploadedText: string
+Uri: string
+Url: string
+*/
+
+//{filename:filename1,filedescr:filedescription,dlurl:downloadurl}
+function viewredline(partnumber,filename,dlurl,mfiles,redlineflag){
+  let url=downloadproxyurl+"?change="+change+"&partnumber="+partnumber+"&username="+username+"&authtxt="+authtxt+"&pdfname="+filename+"&pdfurl="+dlurl+"&redlineflag="+redlineflag;
+  if(mfiles.length>0){
+	  let url2="&mfiles=";
+	  for(let i=0;i<mfiles.length;i++){
+		let mfile=mfiles[i]; 
+		let mfilename=mfile.filename;
+		let mfdlurl=mfile.dlurl;
+		url2=url2+mfilename+","+mfdlurl;
+		if(i<(mfiles.length-1))
+			url2=url2+";";
+	  }
+	  url=url+url2;
+  }
+  fetch(url,{method:"GET"}) 
+  .then(response => {
+     if(!response.ok)
+       throw new Error('http error: '+response.status);
+     return response.text();
+  })
+  .then(text => {
+     console.log("response="+text);
+  })
+  .catch(error => {
+     console.error("error: "+error);
+  });
 }
 
 function dlf(blob,filename){
+   superblob=blob;
    let url=downloadproxyurl+'?filename='+filename+"&username="+username;
    fetch(url,{method:'POST',headers:{'content-type': 'application/octet-stream'},body: blob})//mode:'no-cors' doesn't allow setting content-type!!!
    .then(response => {
@@ -398,7 +505,7 @@ function dlf(blob,filename){
         throw new Error('app response error: '+data.error);
       //if(data.file==undefined)
         //throw new Error('app didn't return file name and path');
-      console.log('filename='+data.file);
+      console.log('downloaded and transferred filename='+data.file);
       loadautovue(data.file);
    })
    .catch(error => {
@@ -428,6 +535,9 @@ function loadautovue(filename){
      filename=filename.substring(filename.lastIndexOf("\\")+1);
      callAV("openMarkup",filename); 
   }
+}
+
+function reload(){
 }
 
 function closeavwin(){
@@ -479,6 +589,12 @@ function callAV(method,filenamepath){
                 }else if(avinit==1){
                    avinit=2;
                    //setTimeout(function(){callAV(method,filenamepath);},1100);
+                   
+                }
+                if(method=='setFile' || method=='openMarkup'){
+                   let stat=document.getElementById('td|'+downloadupload_el.id);
+                   if(stat.innerText!="Read-Only")
+                     stat.innerText="In-AutoVue";
                 }
             })
             .catch(error => {
