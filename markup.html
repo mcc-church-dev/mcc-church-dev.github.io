@@ -439,7 +439,7 @@ function viewredline(filename,dlurl,mfiles){
 	  }
 	  url=url+url2;
   }
-  fetch(url,{method:"GET",mode:"no-cors",}) 
+  fetch(url,{method:"GET",mode:"no-cors"}) 
   .then(response => {
      if(!response.ok)
        throw new Error('http error: '+response.status);
