@@ -7,11 +7,26 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
 <style>
 
+.summ{
+   font-family: "Roboto", sans-serif;font-size:10px;
+}
+
+.buttactive{
+   color: white;
+   background-color: green;
+}
+
 .butt{
    font-family: "Roboto", sans-serif;font-size:10px;
    padding:1px;
    margin-left:1px;
 }
+
+.butt2active{
+   color: white;
+   background-color: red;
+}
+
 
 .butt2{
    font-family: "Roboto", sans-serif;font-size:10px;
@@ -91,6 +106,10 @@ var fmap=new Map();
 var modmap=new Map();
 var partnumber,partrev,redlineflag;
 var polltimer;
+var butts=[];
+var summs=[];
+var mymarkups=[];
+var othersmarkups=[];
 
 window.onload = (event) => {
     const urlParams = new URLSearchParams(window.location.search);
@@ -165,10 +184,27 @@ function finish(){
       dets[i].setAttribute('open',true);
 }
 
+function clearbutts(){
+	for(let i=0;i<butts.length;i++){
+		let butt=document.getElementById(butts[i]);
+		butt.classList.remove('buttactive');
+		butt.classList.remove('butt2active');
+	}
+}
+
+function clearsumms(){
+	for(let i=0;i<summs.length;i++){
+		let summ=document.getElementById(summs[i]);
+        summ.innerHTML="";
+	}
+}
+
 //partnumber|partrev|filename|dlurl|lastupdatedby
 
 function viewclick(ev){
      downloadupload_el=ev.target;
+     clearbutts();
+     downloadupload_el.classList.add('buttactive');
      let markupinfo=downloadupload_el.getAttribute('data-markupinfo');
      let mis=markupinfo.split("|");
      partnumber=mis[0];
@@ -177,11 +213,14 @@ function viewclick(ev){
      let pdfdlurl=mis[3];
      let mfiles=fmap.get(partnumber);
      redlineflag="false";
+     clearsumms();
      viewredline(pdffilename,pdfdlurl,mfiles);
 }
 
 function redlineclick(ev){
     downloadupload_el=ev.target;
+    clearbutts();
+    downloadupload_el.classList.add('butt2active');
     let markupinfo=downloadupload_el.getAttribute('data-markupinfo');
     let mis=markupinfo.split("|");
     partnumber=mis[0];
@@ -190,6 +229,7 @@ function redlineclick(ev){
     let pdfdlurl=mis[3];
     let mfiles=fmap.get(partnumber);
     redlineflag="true";
+    clearsumms();
     viewredline(pdffilename,pdfdlurl,mfiles);
 }
 
@@ -202,11 +242,17 @@ function makedetails(data){
 	   details.id="d"+i;
 	   details.classList.add('detailsclass');
 	   currdetails.push(details)
-	   let summary=document.createElement("summary");
+	   let sumhtml="";
 	   if(pinfo.partdescr!=undefined && pinfo.partdescr.length>0) 
-	        summary.innerHTML="&nbsp;&nbsp;&nbsp;"+pinfo.partnumber+"&nbsp;("+pinfo.partrev+")"+spacer+pinfo.partdescr;
+	        sumhtml="&nbsp;&nbsp;&nbsp;"+pinfo.partnumber+"&nbsp;("+pinfo.partrev+")"+spacer+pinfo.partdescr;
 	   else 
-	        summary.innerHTML="&nbsp;&nbsp;&nbsp;"+pinfo.partnumber+"&nbsp;("+pinfo.partrev+")"
+	        sumhtml="&nbsp;&nbsp;&nbsp;"+pinfo.partnumber+"&nbsp;("+pinfo.partrev+")";
+	   let sid=pinfo.files[0].filename;//900024B_V1.pdf
+	   sid=sid.substring(0,sid.indexOf("."));
+	   summs.push(sid);
+	   sumhtml=sumhtml+"<div class=\"summ\" id=\""+sid+"\" style=\"float:right;\"></div>";
+	   let summary=document.createElement("summary");
+	   summary.innerHTML=sumhtml;   
 	   let tab=document.createElement('table');
 	   tab.classList.add('tab1');
 	   for(let j=0;j<pinfo.files.length;j++){//just pdf
@@ -246,7 +292,8 @@ function makedetails(data){
 	      butt.innerText="View";
 	      butt.classList.add('butt');
 	      td3.appendChild(butt);
-	      butt.id=pinfo.partrev+"|"+finfo.filename;
+	      butt.id="v-"+pinfo.partnumber+"|"+pinfo.partrev+"|"+finfo.filename;
+	      butts.push(butt.id);
 	      butt.addEventListener('click',viewclick);
 	      butt.setAttribute('data-markupinfo',pinfo.partnumber+"|"+pinfo.partrev+"|"+finfo.filename+"|"+finfo.dlurl);
 	      let td4=tr.insertCell();
@@ -254,7 +301,8 @@ function makedetails(data){
 	      butt2.innerText="Redline";
 	      butt2.classList.add('butt');
 	      td4.appendChild(butt2);
-	      butt2.id=pinfo.partrev+"|"+finfo.filename;
+	      butt2.id="r-"+pinfo.partnumber+"|"+pinfo.partrev+"|"+finfo.filename;
+	      butts.push(butt2.id);
 	      butt2.addEventListener('click',redlineclick);
 	      butt2.setAttribute('data-markupinfo',pinfo.partnumber+"|"+pinfo.partrev+"|"+finfo.filename+"|"+finfo.dlurl);
 	   }//for
@@ -434,6 +482,10 @@ function viewredline(filename,dlurl,mfiles){
 	  for(let i=0;i<mfiles.length;i++){
 		let mfile=mfiles[i]; 
 		url2=url2+mfile.filename+"$"+mfile.dlurl+"$"+mfile.lastupdatedby;
+		if(mfile.lastupdatedby==username)
+			mymarkups.push(mfile.filename);
+		else
+			othersmarkups.push(mfile.filename);
 		if(i<(mfiles.length-1))
 			url2=url2+",";
 	  }
@@ -451,7 +503,8 @@ function viewredline(filename,dlurl,mfiles){
 	     let v=text.split(",");
 	     for(let i=0;i<v.length;i++){
 	    	 let f=v[i].split(":");
-	    	 modmap.set(f[0],f[1]);
+	    	 if(mymarkups.includes(f[0]))
+	    	     modmap.set(f[0],f[1]);
 	     }
      }
      if(redlineflag=="true"){
@@ -484,18 +537,28 @@ function poll(){
 	     console.log("response="+text);//900024B_V1.johndunbar:1023342545,900024B_V1.spf:12330005
 	     if(text.length>0){
 		     let v=text.split(",");
-		     let updated="";
 		     for(let i=0;i<v.length;i++){
 		    	 let f=v[i].split(":");
 		    	 let markupfile=f[0];
-		    	 let lastcsum=modmap.get(f[0]);
-		    	 let latestcsum=f[1];
-		    	 if(latestcsum!=lastcsum)
-		    		updated=updated+markupfile+", "; 
+	    	     let latestcsum=f[1];
+		    	 let flag1=true;
+		    	 if(othersmarkups.includes(markupfile))
+		    		 continue;
+		    	 else if(mymarkups.includes(markupfile)){
+		    	     let lastcsum=modmap.get(markupfile);
+			    	 if(latestcsum!=lastcsum){
+			    		let sid=markupfile.substring(0,markupfile.indexOf("."));
+			    		let e=document.getElementById(sid);
+			    		e.innerHTML="markup updated";
+				     }
+		    	 }else{
+			    	let sid=markupfile.substring(0,markupfile.indexOf("."));
+			    	let e=document.getElementById(sid);
+			    	e.innerHTML="new markup created";
+			    	mymarkups.push(markupfile);
+		    	 }
 		    	 modmap.set(markupfile,latestcsum);
 		     }
-		     if(updated.length>0)
-		         alert("The following markups were updated: "+updated);
 	     }
 	     setTimeout(poll,5000);
 	  })
