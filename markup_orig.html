@@ -1,0 +1,575 @@
+<html>
+<head>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet">
+<script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
+<style>
+
+.summ{
+   font-family: "Roboto", sans-serif;font-size:10px;
+}
+
+.buttactive{
+   color: white;
+   background-color: green;
+}
+
+.butt{
+   font-family: "Roboto", sans-serif;font-size:10px;
+   padding:1px;
+   margin-left:1px;
+}
+
+.butt2active{
+   color: white;
+   background-color: red;
+}
+
+
+.butt2{
+   font-family: "Roboto", sans-serif;font-size:10px;
+   padding:1px;
+   /* margin-left:9px; */
+}
+
+#top{
+  margin-top:20px;
+  padding:12px;
+}
+
+tr { cursor: default; padding: 10px;height:30px;text-align:left;vertical-align:middle;}
+
+.highlight { background: #e6f2ff; font-style:ROBOTO;font-size:12px;}
+
+th {border:solid 1px whitesmoke;color:black;padding: 4px;font-family: "Roboto", sans-serif;font-size:12px;}
+
+.tab2{
+  width: 400px;
+  border:solid 1px lightgray;
+  font-style:bold;
+}
+
+summary{padding:4px;color:black;font-family: "Roboto", sans-serif;font-size:14px;background-color:whitesmoke;}
+
+details{
+  padding: 8px;
+  width:400px;
+  border:solid 1px whitesmoke;
+  background-color: white;
+ box-shadow: 1px 1px 2px whitesmoke; 
+  margin-bottom:18px;
+}
+
+.tab1{
+  margin-top:8px;
+  background-color:white;
+  padding:4px;
+  width:400px;
+  /* border:solid 1px lightgray; */
+  overflow:auto;
+}
+
+td{font-family: "Roboto", sans-serif;font-size:12px;padding:6px;}
+
+.spacer{margin-right:8px;}
+
+.col1{width:150px;}
+
+.col2{width:200px;}
+
+i{color:rgb(128, 128, 128);}
+</style>
+
+<script type="text/javascript">
+var change = "";
+var username = "";
+var currdetails=[];
+var apiversion="latest";//11.13.18.05
+var itemsapiurl = "https://fa-etao-dev22-saasfademo1.ds-fa.oraclepdemos.com:443/fscmRestApi/resources/"+apiversion+"/itemsV2";
+var changesapiurl = "https://fa-etao-dev22-saasfademo1.ds-fa.oraclepdemos.com:443/fscmRestApi/resources/"+apiversion+"/productChangeOrdersV2";
+var avurl = "http://localhost:8888";
+var downloadproxyurl="http://localhost:8080/examples/download.jsp";
+var uploadproxyurl="http://localhost:8080/examples/upload.jsp";
+var pollproxyurl="http://localhost:8080/examples/fpoll.jsp";
+var avinit=0;
+var spacer="&nbsp;&nbsp;&nbsp;-&nbsp;&nbsp;&nbsp;";
+var un="JOHN.DUNBAR";
+var pw="Hf?K3U#2";
+var auth64 = btoa(un + ":" + pw);
+var authtxt="";
+var corsmode="";
+var downloadupload_el="";
+var firsttime=true;
+var fmap=new Map();
+var modmap=new Map();
+var partnumber,partrev,redlineflag;
+var polltimer;
+var butts=[];
+var summs=[];
+var mymarkups=[];
+var othersmarkups=[];
+
+window.onload = (event) => {
+    const urlParams = new URLSearchParams(window.location.search);
+    change = urlParams.get('change');
+    username = urlParams.get('username');
+    if(window.location.hostname.indexOf("127.")>-1 || window.location.hostname.indexOf("localhost")>-1){
+       authtxt="Basic "+auth64;
+       corsmode="cors";
+       getAllPendingChangesAndAffectedItems();
+    }else{
+      coresmod="cors";
+      init();
+    }
+}
+
+function init(){
+  if (typeof window.addEventListener === 'function'){
+     window.addEventListener('message', receiveJWTToken,false);
+  }else if (typeof window.attachEvent == 'function'){
+     window.attachEvent('onemessage', receiveJWTToken);
+  }else{
+     throw new Error("Browser doesn't support addEventListener or attachEvent");
+  }
+  payload = {}
+  payload.origin = window.frames.origin;
+  payload.method = 'requestJwtToken'
+  window.parent.postMessage(JSON.stringify(payload), '*');
+}
+
+function receiveJWTToken(msg){
+  console.log("got jwt");
+  if(msg.data!=undefined && msg.data.length>50){
+     authtxt="Bearer "+msg.data;
+     if(firsttime)
+        getAllPendingChangesAndAffectedItems();
+     firsttime=false;
+  }
+}
+
+function finish(){
+  var rows = $('tr').not(':first');
+
+  rows.on('mouseover',function(e){
+      let row = $(this);
+      row.addClass('highlight');
+  });
+
+  rows.on('mouseout',function(e){
+      let row = $(this);
+      row.removeClass('highlight');
+  });
+
+  /*
+  rows.on('click', function(e) {
+     let row = $(this);
+     if ((e.ctrlKey || e.metaKey) || e.shiftKey) {
+            row.addClass('highlight');
+     } else {
+            rows.removeClass('highlight');
+            row.addClass('highlight');
+     }
+  });
+  */
+
+  //prevent some ugliness
+  $(document).bind('selectstart dragstart', function(e) { 
+        e.preventDefault(); return false; 
+  });
+
+  let dets=document.getElementsByClassName('detailsclass');
+  for(let i=0;i<dets.length;i++)
+      dets[i].setAttribute('open',true);
+}
+
+function clearbutts(){
+	for(let i=0;i<butts.length;i++){
+		let butt=document.getElementById(butts[i]);
+		butt.classList.remove('buttactive');
+		butt.classList.remove('butt2active');
+	}
+}
+
+function clearsumms(){
+	for(let i=0;i<summs.length;i++){
+		let summ=document.getElementById(summs[i]);
+        summ.innerHTML="";
+	}
+}
+
+//partnumber|partrev|filename|dlurl|lastupdatedby
+
+function viewclick(ev){
+     downloadupload_el=ev.target;
+     clearbutts();
+     downloadupload_el.classList.add('buttactive');
+     let markupinfo=downloadupload_el.getAttribute('data-markupinfo');
+     let mis=markupinfo.split("|");
+     partnumber=mis[0];
+     partrev=mis[1];
+     let pdffilename=mis[2];
+     let pdfdlurl=mis[3];
+     let mfiles=fmap.get(partnumber);
+     redlineflag="false";
+     clearsumms();
+     viewredline(pdffilename,pdfdlurl,mfiles);
+}
+
+function redlineclick(ev){
+    downloadupload_el=ev.target;
+    clearbutts();
+    downloadupload_el.classList.add('butt2active');
+    let markupinfo=downloadupload_el.getAttribute('data-markupinfo');
+    let mis=markupinfo.split("|");
+    partnumber=mis[0];
+    partrev=mis[1];
+    let pdffilename=mis[2];
+    let pdfdlurl=mis[3];
+    let mfiles=fmap.get(partnumber);
+    redlineflag="true";
+    clearsumms();
+    viewredline(pdffilename,pdfdlurl,mfiles);
+}
+
+//[{partnumber:itemnumber,partrev:itemrev,partdescr:itemdescription,files:files}]
+function makedetails(data){
+  let topdiv=document.getElementById('top');
+  for(let i=0;i<data.length;i++){
+	   let pinfo=data[i];
+	   let details=document.createElement("details");
+	   details.id="d"+i;
+	   details.classList.add('detailsclass');
+	   currdetails.push(details)
+	   let sumhtml="";
+	   if(pinfo.partdescr!=undefined && pinfo.partdescr.length>0) 
+	        sumhtml="&nbsp;&nbsp;&nbsp;"+pinfo.partnumber+"&nbsp;("+pinfo.partrev+")"+spacer+pinfo.partdescr;
+	   else 
+	        sumhtml="&nbsp;&nbsp;&nbsp;"+pinfo.partnumber+"&nbsp;("+pinfo.partrev+")";
+	   let sid=pinfo.files[0].filename;//900024B_V1.pdf
+	   sid=sid.substring(0,sid.indexOf("."));
+	   summs.push(sid);
+	   sumhtml=sumhtml+"<div class=\"summ\" id=\""+sid+"\" style=\"float:right;\"></div>";
+	   let summary=document.createElement("summary");
+	   summary.innerHTML=sumhtml;   
+	   let tab=document.createElement('table');
+	   tab.classList.add('tab1');
+	   for(let j=0;j<pinfo.files.length;j++){//just pdf
+	      let finfo=pinfo.files[j];
+	      if(j==0){
+	        let tr=tab.insertRow();
+	        let td1=document.createElement("th");
+	        td1.classList.add('col1');
+	        td1.appendChild(document.createTextNode("FileName"));
+	        tr.appendChild(td1);
+	        let td2=document.createElement("th");
+	        td2.classList.add('col2');
+	        td2.appendChild(document.createTextNode("Description"));
+	        tr.appendChild(td2);
+	        let td3=document.createElement("th");
+	        td3.appendChild(document.createTextNode(""));
+	        tr.appendChild(td3);
+	        let td4=document.createElement("th");
+	        td4.appendChild(document.createTextNode(""));
+	        tr.appendChild(td4)
+	      }
+	      let tr=tab.insertRow();
+	      let td1=tr.insertCell();
+	      td1.classList.add('col1');
+	      let ic=document.createElement("i");
+	      ic.classList.add('fa-file-pdf');
+	      td1.appendChild(ic);
+	      let sp=document.createElement("span");
+	      sp.classList.add('spacer');
+	      td1.appendChild(sp);
+	      td1.appendChild(document.createTextNode(finfo.filename));
+	      let td2=tr.insertCell();
+	      td2.classList.add('col2');
+	      td2.appendChild(document.createTextNode(finfo.filedescr));      
+	      let td3=tr.insertCell();
+	      let butt=document.createElement('button');
+	      butt.innerText="View";
+	      butt.classList.add('butt');
+	      td3.appendChild(butt);
+	      butt.id="v-"+pinfo.partnumber+"|"+pinfo.partrev+"|"+finfo.filename;
+	      butts.push(butt.id);
+	      butt.addEventListener('click',viewclick);
+	      butt.setAttribute('data-markupinfo',pinfo.partnumber+"|"+pinfo.partrev+"|"+finfo.filename+"|"+finfo.dlurl);
+	      let td4=tr.insertCell();
+	      let butt2=document.createElement('button');
+	      butt2.innerText="Redline";
+	      butt2.classList.add('butt');
+	      td4.appendChild(butt2);
+	      butt2.id="r-"+pinfo.partnumber+"|"+pinfo.partrev+"|"+finfo.filename;
+	      butts.push(butt2.id);
+	      butt2.addEventListener('click',redlineclick);
+	      butt2.setAttribute('data-markupinfo',pinfo.partnumber+"|"+pinfo.partrev+"|"+finfo.filename+"|"+finfo.dlurl);
+	   }//for
+	   details.appendChild(summary);
+	   details.appendChild(tab);
+	   topdiv.appendChild(details);
+  }//for
+}
+
+//  var data2=[{partrev:'900024 (C)',partdescr:'Label for Wegovy tablets',files:[{filename:'label2.pdf',filedescr:'label correction',dlurl:'https://file3'}]}];
+
+function processattachments(itemnumber,itemrev,itemdescription,revatts){
+     let pdfs=[];
+     let markups=[];
+     
+     let files1=[];
+     let files2=[];
+
+     for(let i=0;i<revatts.length;i++){
+       let revatt=revatts[i];
+       //UserName (aka category),CreatedByUserName,LastUpdateDate,LastUpdatedBy
+       let finfo=[revatt.FileName,revatt.Description,revatt.links[0].href,revatt.LastUpdatedBy];  
+         if(finfo[0].endsWith(".pdf"))
+           pdfs.push(finfo);
+         else
+           markups.push(finfo);
+     }
+   
+     for(let i=0;i<pdfs.length;i++){
+         let filename1=pdfs[i][0];
+         let filedescription=pdfs[i][1];
+         let downloadurl=pdfs[i][2];
+         let lub=pdfs[i][3];
+         files1.push({filename:filename1,filedescr:filedescription,dlurl:downloadurl,lastupdatedby:lub});
+     }
+
+     for(let i=0;i<markups.length;i++){
+         let filename1=markups[i][0];
+         let filedescription=markups[i][1];
+         let downloadurl=markups[i][2];
+         let lub=markups[i][3];
+         files2.push({filename:filename1,filedescr:filedescription,dlurl:downloadurl,lastupdatedby:lub});
+     }  
+     
+     fmap.set(itemnumber,files2);
+ 
+     let data=[{partnumber:itemnumber,partrev:itemrev,partdescr:itemdescription,files:files1}];
+     makedetails(data);
+     finish();   
+}
+
+function itemnextphase(itemnumber,itemrev,itemdescription,href){
+        let url=href+"/child/ItemRevision?q=RevisionCode="+itemrev+"&fields=RevisionCode,RevisionAttachment&expand=RevisionAttachment&links=enclosure";
+
+        fetch(url, { method: "GET", headers: { "Authorization": authtxt } })
+            .then(response => {
+                if (!response.ok)
+                    throw new Error('http error: ' + response.status);
+                return response.json();
+            })
+            .then(data => {
+                let items = data.items;
+                let revatts=items[0].RevisionAttachment;
+                if(revatts.length>0){              
+                  processattachments(itemnumber,itemrev,itemdescription,revatts);// 'asynchronous'
+                  console.log("getting attachment info for: "+itemnumber+" ("+itemrev+") "+itemdescription);
+                }else
+                  console.log("no attachments on: "+itemnumber+" ("+itemrev+") "+itemdescription);
+            })
+            .catch(error => {
+                console.error("error: " + error);
+                alert("error: " + error);
+            });
+}
+
+function processaffecteditems(itemnumber,itemrev){
+        let url=itemsapiurl+"?q=ItemNumber="+itemnumber+"&fields=ItemDescription&links=self";
+
+        fetch(url, { method: "GET", headers: { "Authorization": authtxt } })
+            .then(response => {
+                if (!response.ok)
+                    throw new Error('http error: ' + response.status);
+                return response.json();
+            })
+            .then(data => {
+                let items = data.items;
+                let itemdescription=items[0].ItemDescription;
+                let href=items[0].links[0].href;                
+                itemnextphase(itemnumber,itemrev,itemdescription,href);// 'asynchronous'
+                console.log("next phase of: "+itemnumber+" ("+itemrev+") "+itemdescription);
+            })
+            .catch(error => {
+                console.error("error: " + error);
+                alert("error: " + error);
+            });                
+   
+}
+
+function changenextphase(items){
+     for(let i=0;i<items.length;i++){
+         let item=items[i];
+         let changenumber=item.ChangeNotice;
+         let changedescription=item.Description;
+         let aos=item.changeOrderAffectedObject;
+         for(i=0;i<aos.length;i++){
+             let item=aos[i];
+             let itemnumber=item.ItemNumber;
+             let itemrev=item.NewItemRevision;
+             processaffecteditems(itemnumber,itemrev);
+             console.log("processing "+itemnumber+" ("+itemrev+")");
+         }
+     }       
+}
+
+function getAllPendingChangesAndAffectedItems(){
+    let url = changesapiurl + "?q=ChangeNotice=" + change + "&expand=changeOrderAffectedObject&links=child&totalResults=true";
+
+    for(let i=0;i<currdetails.length;i++)
+       currdetails[i].remove();
+
+    //$('#ldr').jqxLoader('open');
+
+   console.log("authtxt="+authtxt);
+   let corsmode="cors";
+
+    fetch(url, { method: "GET", mode: corsmode, headers: { "Authorization": authtxt} })
+            .then(response => {
+                if (!response.ok)
+                    throw new Error('http error: ' + response.status);
+                return response.json();
+            })
+            .then(data => {
+                let items = data.items;
+                if (items.length > 0) {
+                    changenextphase(items);// 'asynchronous'
+                }else{
+                   //$('#ldr').jqxLoader('close');
+                   alert('no data found');
+                }
+            })
+            .catch(error => {
+                console.error("error: " + error);
+                alert("error: " + error);
+            });
+}
+
+/*upload attachments  Grab EVERYTHING from revision attachment
+AttachedDocumentId: integer (int64)
+CategoryName: string
+ContentRepositoryFileShared: boolean
+DatatypeCode: string
+Description: string
+DmDocumentId: string
+DmFolderPath: string
+DmVersionNumber: string
+DownloadInfo: string
+ErrorStatusCode: string
+ErrorStatusMessage: string
+ExpirationDate: string (date-time)
+FileContents: string (byte)
+FileName: string
+FileUrl: string
+Title: string
+UploadedFileContentType: string
+UploadedFileLength: integer
+UploadedFileName: string
+UploadedText: string
+Uri: string
+Url: string
+*/
+
+//{filename:filename1,filedescr:filedescription,dlurl:downloadurl}
+function viewredline(filename,dlurl,mfiles){
+  let url=downloadproxyurl+"?change="+change+"&partnumber="+partnumber+"&partrev="+partrev+"&username="+username+"&authtxt="+authtxt+"&pdfname="+filename+"&pdfurl="+dlurl;
+  if(mfiles.length>0){
+	  let url2="&mfiles=";
+	  for(let i=0;i<mfiles.length;i++){
+		let mfile=mfiles[i]; 
+		url2=url2+mfile.filename+"$"+mfile.dlurl+"$"+mfile.lastupdatedby;
+		if(mfile.lastupdatedby==username)
+			mymarkups.push(mfile.filename);
+		else
+			othersmarkups.push(mfile.filename);
+		if(i<(mfiles.length-1))
+			url2=url2+",";
+	  }
+	  url=url+url2;
+  }
+  fetch(url,{method:"GET",mode:"cors"}) 
+  .then(response => {
+     if(!response.ok)
+       throw new Error('http error: '+response.status);
+     return response.text();//
+  })
+  .then(text => {
+     console.log("response="+text);//900024B_V1.johndunbar:1023342545,900024B_V1.spf:12330005
+     if(text.length>0 && text.indexOf(":")>-1){
+	     let v=text.split(",");
+	     for(let i=0;i<v.length;i++){
+	    	 let f=v[i].split(":");
+	    	 if(mymarkups.includes(f[0]))
+	    	     modmap.set(f[0],f[1]);
+	     }
+     }
+     if(redlineflag=="true"){
+    	console.log("starting file polling");
+        polltimer=setTimeout(poll,5000);
+     }
+  })
+  .catch(error => {
+     console.error("error: "+error);
+  });
+}
+
+function poll(){
+	  
+	  if(redlineflag=="false"){
+		  console.log("clearing timeout");
+		  clearTimeout(polltimer);
+		  return;
+	  }
+	
+	  let purl=pollproxyurl+"?change="+change+"&partnumber="+partnumber+"&partrev="+partrev+"&username="+username+"&redlineflag="+redlineflag;
+	  
+	  fetch(purl,{method:"GET",mode:"cors"}) 
+	  .then(response => {
+	     if(!response.ok)
+	       throw new Error('http error: '+response.status);
+	     return response.text();
+	  })
+	  .then(text => {
+	     console.log("response="+text);//900024B_V1.johndunbar:1023342545,900024B_V1.spf:12330005
+	     if(text.length>0){
+		     let v=text.split(",");
+		     for(let i=0;i<v.length;i++){
+		    	 let f=v[i].split(":");
+		    	 let markupfile=f[0];
+	    	     let latestcsum=f[1];
+		    	 let flag1=true;
+		    	 if(othersmarkups.includes(markupfile))
+		    		 continue;
+		    	 else if(mymarkups.includes(markupfile)){
+		    	     let lastcsum=modmap.get(markupfile);
+			    	 if(latestcsum!=lastcsum){
+			    		let sid=markupfile.substring(0,markupfile.indexOf("."));
+			    		let e=document.getElementById(sid);
+			    		e.innerHTML="markup updated";
+				     }
+		    	 }else{
+			    	let sid=markupfile.substring(0,markupfile.indexOf("."));
+			    	let e=document.getElementById(sid);
+			    	e.innerHTML="new markup created";
+			    	mymarkups.push(markupfile);
+		    	 }
+		    	 modmap.set(markupfile,latestcsum);
+		     }
+	     }
+	     setTimeout(poll,5000);
+	  })
+	  .catch(error => {
+	     console.error("error: "+error);
+	  });
+}
+
+</script>
+</head>
+<body>
+<div id="top"></div>
+</body>
+</html>
