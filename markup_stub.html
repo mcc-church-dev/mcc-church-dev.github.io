@@ -1,0 +1,33 @@
+<html>
+<head>
+<script type="text/javascript">
+var change = "";
+var username = "";
+var localurl="http://localhost:8080/examples/markuplocal.html";
+
+window.onload = (event) => {
+    const urlParams = new URLSearchParams(window.location.search);
+    change = urlParams.get('change');
+    username = urlParams.get('username');
+    if (typeof window.addEventListener === 'function'){
+        window.addEventListener('message', receiveJWTToken,false);
+    }else if (typeof window.attachEvent == 'function'){
+        window.attachEvent('onemessage', receiveJWTToken);
+    }else{
+        throw new Error("Browser doesn't support addEventListener or attachEvent");
+    }
+    payload = {}
+    payload.origin = window.frames.origin;
+    payload.method = 'requestJwtToken'
+    window.parent.postMessage(JSON.stringify(payload), '*');
+}
+
+function receiveJWTToken(msg){
+  console.log("got jwt, calling on-prem url");
+  if(msg.data!=undefined && msg.data.length>50)
+     window.location.replace(localurl+"?authtxt="+msg.data+"&change="+change+"&username="+username);
+}
+</script>
+</head>
+<body></body>
+</html>
